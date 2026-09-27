@@ -75,7 +75,7 @@ export function ProjectMoney({ id, accounts, advanceLeft, guarantee, categories 
   const [state, action] = useActionState<ActionState, FormData>(projectMoneyAction, {});
   const defaults = { advance: advanceLeft, guarantee: (Number(guarantee.amount) * 0.1).toFixed(2), cost: "" };
   return (
-    <form action={action} className="space-y-3" key={kind}>
+    <form action={action} className="space-y-3" key={`${kind}-${advanceLeft}-${guarantee.held}`}>
       <input type="hidden" name="id" value={id} />
       <input type="hidden" name="kind" value={kind} />
       <div className="grid grid-cols-3 gap-1 rounded-xl bg-subtle p-1">
@@ -125,7 +125,7 @@ export function ProjectMoney({ id, accounts, advanceLeft, guarantee, categories 
 export function EditProject({ id, p }: { id: string; p: Parameters<typeof ProjectFields>[0]["p"] }) {
   const [state, action] = useActionState<ActionState, FormData>(saveProjectAction, {});
   return (
-    <form action={action} className="space-y-3">
+    <form action={action} className="space-y-3" key={JSON.stringify(p)}>
       <input type="hidden" name="id" value={id} />
       <ProjectFields p={p} customers={[]} withStatus />
       <FormError state={state} />

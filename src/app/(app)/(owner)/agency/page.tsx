@@ -183,7 +183,7 @@ export default async function AgencyPage({ searchParams }: { searchParams: Promi
                 })}
               </div>
             )}
-            <p className="mt-2 text-xs text-muted">عشان المستقل يدخل ويشوف مهامه: الإعدادات ← المستخدمين ← حساب جديد بدور "مستقل".</p>
+            <p className="mt-2 text-xs text-muted">عشان المستقل يدخل ويشوف مهامه: الإعدادات ← المستخدمين ← حساب جديد بدور «مستقل».</p>
           </Card>
           <Card>
             <CardTitle>مستقل جديد</CardTitle>

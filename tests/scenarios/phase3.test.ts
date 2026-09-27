@@ -13,6 +13,7 @@
  *   تحقق: 20,000 + 3,000 − 800 + 6,000 − 3,000 = 25,200 ✔
  * المندوب (عمولة 5%): عقد 2,000 خدمة، اتحصّل واتسلّم → عمولة 100 (مصروف + التزام)
  * ▶ رأس المال = 25,200 + 2,000 − 100 = 27,100
+ * قائمة الدخل: إيراد 3,000 + 6,000 + 2,000 = 11,000 · مصروف 800 + 3,000 + 100 = 3,900 ▶ صافي 7,100 (= 27,100 − 20,000)
  */
 import { beforeAll, describe, expect, it } from "vitest";
 import { assertCustomerAccess, assertQuoteAccess } from "@/server/access";
@@ -23,6 +24,7 @@ import { addPayment, changeOrderStatus } from "@/server/services/orders";
 import { addProjectCost, collectInvoice, createInvoice, createProject, projectSummary, receiveAdvance, setGuaranteeMargin, setInvoiceStatus } from "@/server/services/projects";
 import { contractDetail, createContractFromQuote, createQuote } from "@/server/services/quotes";
 import { getSettings } from "@/server/services/settings";
+import { buildReport, incomeStatement, toCsv, toXlsx } from "@/server/services/reports";
 import { createTransaction } from "@/server/services/transactions";
 import { commissionBalances, createUser } from "@/server/services/users";
 import { acct, actor, db, resetDb } from "../helpers";
@@ -137,5 +139,18 @@ describe("سيناريو المرحلة 3", () => {
   it("الدفتر متوازن", async () => {
     const s = await db.journalLine.aggregate({ _sum: { debit: true, credit: true } });
     expect(s._sum.debit!.toFixed(2)).toBe(s._sum.credit!.toFixed(2));
+  });
+
+  it("قائمة الدخل = الفرق في رأس المال، والتصدير يشتغل", async () => {
+    const period = { fromKey: "2000-01-01", toKey: "2100-01-01" };
+    const t = await incomeStatement(db, period);
+    expect(t.total!.total).toBe(7100);
+    const revenue = t.rows.find((r) => r.account === "المبيعات")!;
+    expect(revenue.total).toBe(11000);
+    const csv = toCsv(await buildReport(db, "channels", period));
+    expect(csv.startsWith("\uFEFFالقناة,")).toBe(true);
+    expect(csv).toContain("وكالة,1,3000");
+    const xlsx = await toXlsx([t, await buildReport(db, "products", period)], period);
+    expect(xlsx.subarray(0, 2).toString()).toBe("PK");
   });
 });
