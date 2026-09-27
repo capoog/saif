@@ -334,6 +334,27 @@ export async function refreshContractTx(tx: Tx, actor: Actor, contractId: string
     await tx.b2BContract.update({ where: { id: c.id }, data: { status: next } });
     await audit(tx, actor, "status", "B2BContract", c.id, { before: { status: c.status }, after: { status: next } });
   }
+  if (done && c.commissionAccrued === null && c.quote?.createdById) {
+    const rep = await tx.user.findUnique({ where: { id: c.quote.createdById } });
+    if (rep?.role === "sales" && rep.commissionPct && D(rep.commissionPct).gt(0)) {
+      // النسبة من صافي الصفقة (بدون ضريبة) بعد التحصيل الكامل
+      const net = sum(live.map((o) => o.netRevenue));
+      const commission = round2(net.times(D(rep.commissionPct)).div(100));
+      await postEntry(tx, {
+        date: new Date(),
+        description: `عمولة ${rep.name} — عقد #${c.number}`,
+        sourceType: "COMMISSION",
+        sourceId: c.id,
+        createdById: actor.userId,
+        lines: [
+          { accountCode: "EXP_COMMISSION", debit: commission, engineId: live[0]?.engineId ?? null },
+          { accountCode: "SALES_COMMISSIONS", credit: commission, salesUserId: rep.id },
+        ],
+      });
+      await tx.b2BContract.update({ where: { id: c.id }, data: { salesUserId: rep.id, commissionAccrued: commission.toFixed(2) } });
+      await audit(tx, actor, "commission", "B2BContract", c.id, { after: { rep: rep.id, commission } });
+    }
+  }
   if (done && c.quote?.dealId) {
     const deal = await tx.deal.findUnique({ where: { id: c.quote.dealId } });
     if (deal && deal.stage !== "WON" && deal.stage !== "LOST") {

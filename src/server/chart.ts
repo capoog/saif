@@ -16,11 +16,13 @@ export const CHART: ChartAccount[] = [
   { code: "TAX_RESERVE", name: "حساب الضريبة", type: "ASSET", kind: "CASH", isMoney: true, isTaxReserve: true },
   { code: "WALLET_CARDS", name: "مدى / Apple Pay (تسويات)", type: "ASSET", kind: "WALLET", isMoney: true },
   { code: "WALLET_BNPL", name: "تابي / تمارا (مستحقات)", type: "ASSET", kind: "WALLET", isMoney: true },
+  { code: "GUARANTEE_MARGIN", name: "هامش ضمانات بنكية (محجوز)", type: "ASSET", kind: "RESTRICTED_CASH" },
   { code: "INVENTORY", name: "المخزون", type: "ASSET", kind: "INVENTORY" },
   { code: "CAR_STOCK", name: "سيارات للبيع (بالتكلفة)", type: "ASSET", kind: "INVENTORY" },
   { code: "CUSTOMERS", name: "العملاء (ذمم وعرابين)", type: "ASSET", kind: "CUSTOMER" },
   { code: "SUPPLIERS", name: "مستحقات الموردين", type: "LIABILITY", kind: "SUPPLIER_PAYABLE" },
   { code: "FREELANCERS", name: "مستحقات المستقلين", type: "LIABILITY", kind: "FREELANCER_PAYABLE" },
+  { code: "SALES_COMMISSIONS", name: "عمولات المناديب المستحقة", type: "LIABILITY", kind: "FREELANCER_PAYABLE" },
   { code: "LOANS", name: "قروض", type: "LIABILITY", kind: "LOAN" },
   { code: "VAT_PAYABLE", name: "ضريبة القيمة المضافة المحصّلة", type: "LIABILITY", kind: "VAT_PAYABLE" },
   { code: "ZAKAT_PROVISION", name: "مخصص الزكاة", type: "LIABILITY", kind: "ZAKAT_PROVISION" },
@@ -36,6 +38,8 @@ export const CHART: ChartAccount[] = [
   { code: "EXP_TRANSPORT", name: "نقل", type: "EXPENSE", kind: "EXPENSE" },
   { code: "EXP_FEES", name: "رسوم", type: "EXPENSE", kind: "EXPENSE" },
   { code: "EXP_OTHER", name: "مصروفات أخرى", type: "EXPENSE", kind: "EXPENSE" },
+  { code: "EXP_FREELANCE", name: "تكلفة تنفيذ (مستقلين)", type: "EXPENSE", kind: "EXPENSE" },
+  { code: "EXP_COMMISSION", name: "عمولات مبيعات", type: "EXPENSE", kind: "EXPENSE" },
   { code: "EXP_INV_ADJ", name: "فروقات جرد", type: "EXPENSE", kind: "EXPENSE" },
   { code: "EXP_RECON", name: "فروقات مطابقة الحسابات", type: "EXPENSE", kind: "EXPENSE" },
   { code: "EXP_ZAKAT", name: "زكاة (تقديري)", type: "EXPENSE", kind: "EXPENSE" },
@@ -64,10 +68,14 @@ export const WITHDRAWAL_PURPOSES: { code: string; label: string; account: string
   { code: "OWNER_DRAW", label: "مسحوبات شخصية", account: "OWNER_CAPITAL" },
   { code: "SUPPLIER_PAYMENT", label: "سداد مورد", account: "SUPPLIERS" },
   { code: "FREELANCER_PAYMENT", label: "سداد مستقل", account: "FREELANCERS" },
+  { code: "COMMISSION_PAYMENT", label: "سداد عمولة مندوب", account: "SALES_COMMISSIONS" },
   { code: "LOAN_REPAYMENT", label: "سداد قرض", account: "LOANS" },
   { code: "VAT_PAYMENT", label: "سداد ضريبة القيمة المضافة", account: "VAT_PAYABLE" },
   { code: "ZAKAT_PAYMENT", label: "سداد زكاة", account: "ZAKAT_PROVISION" },
 ];
+
+/** منتج الخدمة اللي بتنسجل عليه اشتراكات الوكالة */
+export const AGENCY_SERVICE_NAME = "اشتراك الوكالة الرقمية";
 
 export const ENGINES = [
   { code: "ECOM", name: "منتجات وتجارة إلكترونية" },

@@ -13,6 +13,8 @@ export interface CapitalInput {
   asOf: Date;
   cash: DecimalLike;
   wallets: DecimalLike;
+  /** نقد محجوز (هامش ضمان بنكي): من رأس المال لكن مو من السيولة */
+  restrictedCash?: DecimalLike;
   inventory: DecimalLike;
   customerBalances: CustomerBalance[];
   supplierPayable: DecimalLike;
@@ -28,6 +30,7 @@ export interface CapitalBreakdown {
   cash: Decimal;
   wallets: Decimal;
   liquidity: Decimal;
+  restrictedCash: Decimal;
   inventory: Decimal;
   receivablesTotal: Decimal;
   receivablesSecured: Decimal;
@@ -57,6 +60,7 @@ export function computeCapital(input: CapitalInput): CapitalBreakdown {
   const cash = round2(D(input.cash));
   const wallets = round2(D(input.wallets));
   const inventory = round2(D(input.inventory));
+  const restrictedCash = round2(D(input.restrictedCash ?? 0));
 
   let receivablesTotal = ZERO;
   let receivablesSecured = ZERO;
@@ -83,6 +87,7 @@ export function computeCapital(input: CapitalInput): CapitalBreakdown {
   const liabilities = supplierPayable.plus(freelancerPayable).plus(customerDeposits).plus(loans);
   const liquidity = cash.plus(wallets);
   const netEquity = liquidity
+    .plus(restrictedCash)
     .plus(inventory)
     .plus(receivablesSecured)
     .minus(liabilities)
@@ -96,6 +101,7 @@ export function computeCapital(input: CapitalInput): CapitalBreakdown {
     cash,
     wallets,
     liquidity: round2(liquidity),
+    restrictedCash,
     inventory,
     receivablesTotal: round2(receivablesTotal),
     receivablesSecured: round2(receivablesSecured),

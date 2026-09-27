@@ -13,6 +13,7 @@ export interface PostEntryInput {
   sourceType: string;
   sourceId?: string | null;
   orderId?: string | null;
+  projectId?: string | null;
   createdById?: string | null;
   lines: LineInput[];
 }
@@ -29,6 +30,7 @@ export async function postEntry(tx: Tx, input: PostEntryInput) {
       sourceType: input.sourceType,
       sourceId: input.sourceId ?? null,
       orderId: input.orderId ?? null,
+      projectId: input.projectId ?? null,
       createdById: input.createdById ?? null,
       lines: {
         create: lines.map((l) => {
@@ -40,6 +42,8 @@ export async function postEntry(tx: Tx, input: PostEntryInput) {
             credit: toDb2(D(l.credit)),
             engineId: l.engineId ?? null,
             supplierId: l.supplierId ?? null,
+            freelancerId: l.freelancerId ?? null,
+            salesUserId: l.salesUserId ?? null,
             memo: l.memo,
           };
         }),
@@ -59,6 +63,7 @@ export async function reverseEntry(tx: Tx, entryId: string, date: Date, descript
       sourceType: original.sourceType,
       sourceId: original.sourceId,
       orderId: original.orderId,
+      projectId: original.projectId,
       reversalOfId: original.id,
       createdById: createdById ?? null,
       lines: {
@@ -68,6 +73,8 @@ export async function reverseEntry(tx: Tx, entryId: string, date: Date, descript
           credit: l.debit,
           engineId: l.engineId,
           supplierId: l.supplierId,
+          freelancerId: l.freelancerId,
+          salesUserId: l.salesUserId,
           memo: l.memo,
         })),
       },

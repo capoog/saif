@@ -36,6 +36,8 @@ export interface CustomerInput {
   contact?: string | null;
   channel?: string | null;
   notes?: string | null;
+  /** المندوب المسؤول (المندوب يشوف عملاءه بس) */
+  ownerId?: string | null;
 }
 
 function cleanCustomer(i: CustomerInput) {
@@ -60,7 +62,7 @@ export async function createCustomer(db: Db, actor: Actor, input: CustomerInput)
       const dup = await tx.customer.findFirst({ where: { phone: data.phone, deletedAt: null } });
       if (dup) throw new UserError(`الجوال هذا مسجل لعميل ثاني: ${dup.name}`);
     }
-    const c = await tx.customer.create({ data });
+    const c = await tx.customer.create({ data: { ...data, ownerId: input.ownerId ?? null } });
     await audit(tx, actor, "create", "Customer", c.id, { after: c });
     return c;
   });
@@ -195,21 +197,21 @@ export async function logActivity(
 }
 
 /** شاشة اليوم: المتابعات، العدّادات، ولوحة الصفقات */
-export async function crmToday(db: Db | Tx, now = new Date()) {
+export async function crmToday(db: Db | Tx, now = new Date(), ownerId?: string | null) {
   const key = riyadhDateKey(now);
   const start = riyadhStartOfDay(key);
   const end = riyadhEndOfDay(key);
   const open: DealStage[] = ["LEAD", "CONTACTED", "INTERESTED", "QUOTE_SENT", "NEGOTIATION", "DEPOSIT"];
   const [followUps, activitiesToday, quotesToday, deals] = await Promise.all([
     db.deal.findMany({
-      where: { deletedAt: null, stage: { in: open }, nextFollowUpAt: { lte: end } },
+      where: { deletedAt: null, stage: { in: open }, nextFollowUpAt: { lte: end }, ...(ownerId ? { ownerId } : {}) },
       include: { customer: { select: { id: true, name: true, phone: true } } },
       orderBy: { nextFollowUpAt: "asc" },
     }),
-    db.activity.count({ where: { date: { gte: start, lte: end } } }),
-    db.quote.count({ where: { date: { gte: start, lte: end } } }),
+    db.activity.count({ where: { date: { gte: start, lte: end }, ...(ownerId ? { userId: ownerId } : {}) } }),
+    db.quote.count({ where: { date: { gte: start, lte: end }, ...(ownerId ? { createdById: ownerId } : {}) } }),
     db.deal.findMany({
-      where: { deletedAt: null, OR: [{ stage: { in: open } }, { closedAt: { gte: new Date(now.getTime() - 30 * 86400000) } }] },
+      where: { deletedAt: null, ...(ownerId ? { ownerId } : {}), OR: [{ stage: { in: open } }, { closedAt: { gte: new Date(now.getTime() - 30 * 86400000) } }] },
       include: { customer: { select: { id: true, name: true, phone: true } } },
       orderBy: [{ nextFollowUpAt: { sort: "asc", nulls: "last" } }, { updatedAt: "desc" }],
     }),

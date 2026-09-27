@@ -7,6 +7,7 @@ import { prisma } from "../db";
 import { actorOf, requireUser } from "../auth/session";
 import { UserError } from "../errors";
 import { cancelContract, createContractFromQuote, createQuote, recordContractPayment, setQuoteStatus } from "../services/quotes";
+import { assertCustomerAccess, assertDealAccess, assertQuoteAccess } from "../access";
 import { dayAt, entryDate, formObject, moneyStr, optionalMoneyStr, overrideOf, run, type ActionState } from "./run";
 
 function payload(fd: FormData): unknown {
@@ -38,10 +39,12 @@ const quoteSchema = z.object({
 });
 
 export async function createQuoteAction(_prev: ActionState, fd: FormData): Promise<ActionState> {
-  const user = await requireUser();
+  const user = await requireUser(["owner", "sales"]);
   let id = "";
   const res = await run(async () => {
     const v = quoteSchema.parse(payload(fd));
+    await assertCustomerAccess(prisma, user, v.customerId);
+    if (v.dealId) await assertDealAccess(prisma, user, v.dealId);
     const q = await createQuote(prisma, actorOf(user), {
       customerId: v.customerId,
       dealId: v.dealId || null,
@@ -61,9 +64,10 @@ export async function createQuoteAction(_prev: ActionState, fd: FormData): Promi
 }
 
 export async function setQuoteStatusAction(_prev: ActionState, fd: FormData): Promise<ActionState> {
-  const user = await requireUser();
+  const user = await requireUser(["owner", "sales"]);
   const res = await run(async () => {
     const v = z.object({ id: z.string(), status: z.enum(["DRAFT", "SENT", "REJECTED"]) }).parse(formObject(fd));
+    await assertQuoteAccess(prisma, user, v.id);
     await setQuoteStatus(prisma, actorOf(user), v.id, v.status);
   });
   if (res.ok) revalidatePath("/", "layout");

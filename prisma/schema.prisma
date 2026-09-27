@@ -22,20 +22,23 @@ enum Role {
 }
 
 model User {
-  id           String     @id @default(cuid())
-  email        String     @unique
-  name         String
-  passwordHash String
-  role         Role       @default(owner)
-  totpSecret   String?
-  totpEnabled  Boolean    @default(false)
-  failedLogins Int        @default(0)
-  lockedUntil  DateTime?
-  active       Boolean    @default(true)
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-  sessions     Session[]
-  auditLogs    AuditLog[]
+  id            String      @id @default(cuid())
+  email         String      @unique
+  name          String
+  passwordHash  String
+  role          Role        @default(owner)
+  commissionPct Decimal?    @db.Decimal(5, 2)
+  freelancerId  String?     @unique
+  freelancer    Freelancer? @relation(fields: [freelancerId], references: [id])
+  totpSecret    String?
+  totpEnabled   Boolean     @default(false)
+  failedLogins  Int         @default(0)
+  lockedUntil   DateTime?
+  active        Boolean     @default(true)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  sessions      Session[]
+  auditLogs     AuditLog[]
 }
 
 model Session {
@@ -102,6 +105,7 @@ enum AccountType {
 // التصنيف اللي حساب رأس المال بيعتمد عليه
 enum AccountKind {
   CASH // بنك / صندوق / حساب الضريبة
+  RESTRICTED_CASH // نقد محجوز (هامش ضمان بنكي) — من رأس المال لكن مو من السيولة
   WALLET // مدى / Apple Pay / تابي — مستحقات تسوية
   INVENTORY
   CUSTOMER // رصيد العملاء لكل طلب: مدين = ذمة، دائن = عربون
@@ -144,6 +148,8 @@ model JournalEntry {
   // لتجميع رصيد العميل لكل طلب (الذمم والعرابين)
   orderId      String?
   order        Order?        @relation(fields: [orderId], references: [id])
+  projectId    String?
+  project      BigProject?   @relation(fields: [projectId], references: [id])
   reversalOfId String?       @unique
   reversalOf   JournalEntry? @relation("Reversal", fields: [reversalOfId], references: [id])
   reversedBy   JournalEntry? @relation("Reversal")
@@ -155,26 +161,31 @@ model JournalEntry {
   @@index([date])
   @@index([sourceType, sourceId])
   @@index([orderId])
+  @@index([projectId])
 }
 
 model JournalLine {
-  id         String        @id @default(cuid())
-  entryId    String
-  entry      JournalEntry  @relation(fields: [entryId], references: [id], onDelete: Cascade)
-  accountId  String
-  account    LedgerAccount @relation(fields: [accountId], references: [id])
-  debit      Decimal       @default(0) @db.Decimal(14, 2)
-  credit     Decimal       @default(0) @db.Decimal(14, 2)
-  engineId   String?
-  engine     Engine?       @relation(fields: [engineId], references: [id])
+  id           String        @id @default(cuid())
+  entryId      String
+  entry        JournalEntry  @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  accountId    String
+  account      LedgerAccount @relation(fields: [accountId], references: [id])
+  debit        Decimal       @default(0) @db.Decimal(14, 2)
+  credit       Decimal       @default(0) @db.Decimal(14, 2)
+  engineId     String?
+  engine       Engine?       @relation(fields: [engineId], references: [id])
   // دفتر فرعي للموردين: مستحقات كل مورد لوحده
-  supplierId String?
-  supplier   Supplier?     @relation(fields: [supplierId], references: [id])
-  memo       String?
+  supplierId   String?
+  supplier     Supplier?     @relation(fields: [supplierId], references: [id])
+  freelancerId String?
+  salesUserId  String?
+  memo         String?
 
   @@index([accountId])
   @@index([engineId])
   @@index([supplierId])
+  @@index([freelancerId])
+  @@index([salesUserId])
 }
 
 // ───────────────────────── الحركات النقدية ─────────────────────────
@@ -221,6 +232,7 @@ enum ProductStatus {
 enum ProductKind {
   GOODS // منتج أو مادة بمخزون
   BOX // بوكس بمكونات (BOM) — المخزون بيتخصم من المكونات
+  SERVICE // خدمة بدون مخزون (اشتراك وكالة…)
 }
 
 model Product {
@@ -332,12 +344,15 @@ model Customer {
   createdAt DateTime  @default(now())
   deletedAt DateTime?
 
-  orders     Order[]
-  deals      Deal[]
-  quotes     Quote[]
-  activities Activity[]
-  contracts  B2BContract[]
-  carsBought CarDeal[]
+  orders        Order[]
+  deals         Deal[]
+  quotes        Quote[]
+  activities    Activity[]
+  contracts     B2BContract[]
+  carsBought    CarDeal[]
+  subscriptions Subscription[]
+  agencyTasks   AgencyTask[]
+  projects      BigProject[]
 
   @@index([phone])
 }
@@ -654,6 +669,9 @@ model B2BContract {
   createdById String?
   createdAt   DateTime       @default(now())
 
+  salesUserId       String?
+  commissionAccrued Decimal? @db.Decimal(14, 2)
+
   orders Order[]
 }
 
@@ -755,4 +773,154 @@ model CarDealCost {
   accountId      String
   journalEntryId String?  @unique
   createdAt      DateTime @default(now())
+}
+
+// ───────────────────────── الوكالة الرقمية ─────────────────────────
+
+model Freelancer {
+  id        String   @id @default(cuid())
+  name      String
+  phone     String?
+  skills    String?
+  rateNote  String?
+  active    Boolean  @default(true)
+  notes     String?
+  createdAt DateTime @default(now())
+
+  user  User?
+  tasks AgencyTask[]
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAUSED
+  CANCELLED
+}
+
+model Subscription {
+  id              String             @id @default(cuid())
+  customerId      String
+  customer        Customer           @relation(fields: [customerId], references: [id])
+  service         String
+  amount          Decimal            @db.Decimal(14, 2)
+  startDate       DateTime
+  nextBillingDate DateTime
+  status          SubscriptionStatus @default(ACTIVE)
+  notes           String?
+  createdAt       DateTime           @default(now())
+
+  charges SubscriptionCharge[]
+  tasks   AgencyTask[]
+}
+
+// كل شهر ينسجل = طلب خدمة (إيراد + ذمة لين التحصيل)
+model SubscriptionCharge {
+  id             String       @id @default(cuid())
+  subscriptionId String
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id])
+  period         String
+  date           DateTime
+  amount         Decimal      @db.Decimal(14, 2)
+  orderId        String       @unique
+  createdAt      DateTime     @default(now())
+
+  @@unique([subscriptionId, period])
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DELIVERED
+  APPROVED
+  CANCELLED
+}
+
+model AgencyTask {
+  id             String        @id @default(cuid())
+  customerId     String
+  customer       Customer      @relation(fields: [customerId], references: [id])
+  subscriptionId String?
+  subscription   Subscription? @relation(fields: [subscriptionId], references: [id])
+  title          String
+  description    String?
+  dueAt          DateTime?
+  freelancerId   String?
+  freelancer     Freelancer?   @relation(fields: [freelancerId], references: [id])
+  cost           Decimal       @default(0) @db.Decimal(14, 2)
+  status         TaskStatus    @default(TODO)
+  deliveryUrl    String?
+  deliveryNote   String?
+  deliveredAt    DateTime?
+  approvedAt     DateTime?
+  journalEntryId String?       @unique
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([freelancerId, status])
+}
+
+// ───────────────────────── المشاريع الكبيرة ─────────────────────────
+
+enum ProjectType {
+  QUALIFICATION
+  PRIVATE_SUPPLY
+  GOV_TENDER
+  SUBCONTRACT
+  DIRECT_CONTRACT
+}
+
+enum ProjectStatus {
+  BIDDING
+  ACTIVE
+  COMPLETED
+  LOST
+  CANCELLED
+}
+
+model BigProject {
+  id                     String        @id @default(cuid())
+  number                 Int           @unique @default(autoincrement())
+  type                   ProjectType
+  name                   String
+  customerId             String
+  customer               Customer      @relation(fields: [customerId], references: [id])
+  status                 ProjectStatus @default(BIDDING)
+  value                  Decimal       @db.Decimal(14, 2)
+  advancePct             Decimal       @default(0) @db.Decimal(5, 2)
+  bankGuarantee          Decimal       @default(0) @db.Decimal(14, 2)
+  guaranteeMargin        Decimal       @default(0) @db.Decimal(14, 2)
+  expectedCollectionDays Int           @default(60)
+  startDate              DateTime?
+  notes                  String?
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
+
+  invoices       ProjectInvoice[]
+  journalEntries JournalEntry[]
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  PAID
+}
+
+// مستخلص
+model ProjectInvoice {
+  id               String        @id @default(cuid())
+  projectId        String
+  project          BigProject    @relation(fields: [projectId], references: [id])
+  number           Int
+  date             DateTime
+  amount           Decimal       @db.Decimal(14, 2)
+  vatAmount        Decimal       @default(0) @db.Decimal(14, 2)
+  advanceDeduction Decimal       @default(0) @db.Decimal(14, 2)
+  status           InvoiceStatus @default(DRAFT)
+  approvedAt       DateTime?
+  paidAt           DateTime?
+  note             String?
+  createdAt        DateTime      @default(now())
+
+  @@unique([projectId, number])
 }

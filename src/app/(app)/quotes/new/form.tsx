@@ -19,6 +19,7 @@ export function QuoteForm(p: {
   customers: { id: string; name: string }[];
   deals: { id: string; title: string; customerId: string }[];
   products: P[];
+  showCosts: boolean;
   defaults: { validityDays: number; depositPct: number; vatRegistered: boolean; vatRatePct: number; inclusive: boolean };
 }) {
   const [state, action] = useActionState<ActionState, FormData>(createQuoteAction, {});
@@ -101,7 +102,7 @@ export function QuoteForm(p: {
                 <Input inputMode="numeric" value={l.quantity} onChange={(e) => update(i, { quantity: Math.max(1, parseInt(e.target.value) || 1) })} className="num" aria-label="الكمية" />
                 <Input inputMode="decimal" value={l.unitPrice} onChange={(e) => update(i, { unitPrice: e.target.value })} placeholder="سعر الوحدة" className="num" />
               </div>
-              {prod && (
+              {prod && p.showCosts && (
                 <p className={cn("text-xs", lineMargin !== null && lineMargin < 40 ? "text-warn" : "text-muted")}>
                   {prod.cost ? (
                     <>
@@ -148,10 +149,10 @@ export function QuoteForm(p: {
           <span>العربون {depositPct}%</span>
           <span className="num">{fmt((total * n(depositPct)) / 100)}</span>
         </div>
-        <div className={cn("flex justify-between", margin < 40 ? "text-warn" : "text-muted")}>
+        {p.showCosts && <div className={cn("flex justify-between", margin < 40 ? "text-warn" : "text-muted")}>
           <span>الهامش التقديري{unknownCost ? " (بعض البنود بدون تكلفة)" : ""}</span>
           <span className="num">{fmt(net - cost)} ({margin.toFixed(1)}%)</span>
-        </div>
+        </div>}
       </div>
       <FormError state={state} />
       <SubmitButton size="lg">حفظ العرض</SubmitButton>

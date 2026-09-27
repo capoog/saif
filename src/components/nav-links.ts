@@ -46,3 +46,20 @@ export const QUICK = [
   { href: "/inventory/new", label: "شراء دفعة", icon: PackagePlus },
   { href: "/accounts/new", label: "حركة نقدية", icon: ArrowLeftRight },
 ];
+
+/** المندوب: عملاؤه وعروضه وعمولاته بس — بدون أي أرقام مالية للمنشأة */
+export const SALES_TABS = [
+  { href: "/crm", label: "صفقاتي", icon: Users },
+  { href: "/customers", label: "عملائي", icon: Users },
+  { href: "/quotes", label: "عروضي", icon: FileText },
+  { href: "/my", label: "عمولاتي", icon: Wallet },
+];
+
+export const SALES_QUICK = [
+  { href: "/crm#log", label: "تواصل +1", icon: PhoneCall },
+  { href: "/quotes/new", label: "عرض سعر", icon: FileText },
+  { href: "/customers/new", label: "عميل جديد", icon: Users },
+  { href: "/crm/deals/new", label: "صفقة جديدة", icon: Receipt },
+];
+
+export const FREELANCER_TABS = [{ href: "/tasks", label: "مهامي", icon: CalendarCheck }];

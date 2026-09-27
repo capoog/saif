@@ -21,6 +21,9 @@ export interface TransactionInput {
   refId?: string | null;
   /** سداد مورد: المورد اللي بتسدد له (دفتر فرعي) */
   supplierId?: string | null;
+  /** سداد مستقل / عمولة مندوب (دفتر فرعي) */
+  freelancerId?: string | null;
+  salesUserId?: string | null;
   /** سبب تجاوز قواعد المخاطر */
   override?: Override;
   /** داخلي فقط: العملية الأم فحصت القواعد بالفعل (زي استلام أمر شراء) */
@@ -81,8 +84,16 @@ export async function createTransactionTx(tx: Tx, actor: Actor, input: Transacti
             { entity: "Transaction" },
           );
         }
+        if (p.code === "FREELANCER_PAYMENT" && !input.freelancerId) throw new UserError("اختر المستقل");
+        if (p.code === "COMMISSION_PAYMENT" && !input.salesUserId) throw new UserError("اختر المندوب");
         lines = [
-          { accountCode: p.account, debit: amount, supplierId },
+          {
+            accountCode: p.account,
+            debit: amount,
+            supplierId,
+            freelancerId: p.code === "FREELANCER_PAYMENT" ? input.freelancerId : null,
+            salesUserId: p.code === "COMMISSION_PAYMENT" ? input.salesUserId : null,
+          },
           { accountCode: acct.code, credit: amount },
         ];
         description = `سحب: ${p.label}`;

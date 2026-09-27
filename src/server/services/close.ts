@@ -8,7 +8,7 @@ import type { Db, Tx } from "../db";
 import { audit, toJson, type Actor } from "../audit";
 import { UserError } from "../errors";
 import { postEntry } from "../ledger";
-import { accountBalance, customerBalances, getCapital } from "./balances";
+import { accountBalance, customerBalances, getCapital, projectBalances } from "./balances";
 import { getSettings } from "./settings";
 
 /** ربح كل محرك في فترة = إيراداته − (تكلفة بضاعة + مصروفات) المنسوبة له */
@@ -35,7 +35,7 @@ export async function engineCapitalUsed(db: Db | Tx, asOf: Date): Promise<Map<st
     WHERE a."kind" = 'INVENTORY' AND e."date" <= ${asOf} AND l."engineId" IS NOT NULL
     GROUP BY l."engineId"`;
   const map = new Map(inv.map((r) => [r.engineId, D(r.value)]));
-  for (const cb of await customerBalances(db, asOf)) {
+  for (const cb of [...(await customerBalances(db, asOf)), ...(await projectBalances(db, asOf))]) {
     if (cb.balance.lte(0)) continue;
     const age = (asOf.getTime() - cb.dueFrom.getTime()) / 86400000;
     if (age > settings.receivableSecuredDays) continue;

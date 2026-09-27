@@ -11,11 +11,16 @@ export const getCurrentUser = cache(async () => {
   return userFromToken(prisma, token);
 });
 
+/** الصفحة الرئيسية لكل دور */
+export function homeFor(role: Role): string {
+  return role === "owner" ? "/" : role === "sales" ? "/crm" : "/tasks";
+}
+
 /** لأي صفحة أو action: يرجّع المستخدم أو يحوّل للدخول. الأدوار: الافتراضي owner بس. */
 export async function requireUser(roles: Role[] = ["owner"]) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-  if (!roles.includes(user.role)) redirect("/forbidden");
+  if (!roles.includes(user.role)) redirect(homeFor(user.role));
   return user;
 }
 

@@ -51,6 +51,7 @@ export async function createBatchTx(tx: Tx, actor: Actor, input: BatchInput) {
   const product = await tx.product.findUnique({ where: { id: input.productId } });
   if (!product || product.deletedAt) throw new UserError("المنتج غير موجود");
   if (product.kind === "BOX") throw new UserError(`«${product.name}» بوكس — اشتري مكوناته مو البوكس نفسه`);
+  if (product.kind === "SERVICE") throw new UserError(`«${product.name}» خدمة — ما لها مخزون`);
 
   let supplierName = input.supplierName?.trim() || null;
   if (input.supplierId) {
@@ -183,6 +184,7 @@ export async function consumeFifo(
  * خصم بند طلب من المخزون: منتج عادي = FIFO منه. بوكس = FIFO من كل مكوّن × الكمية.
  */
 export async function consumeForSale(tx: Tx, product: Pick<Product, "id" | "kind" | "name">, quantity: number, date: Date, orderItemId: string) {
+  if (product.kind === "SERVICE") return ZERO;
   if (product.kind !== "BOX") return (await consumeFifo(tx, product.id, quantity, date, "SALE", orderItemId)).totalCost;
   const recipe = await tx.recipeLine.findMany({ where: { boxId: product.id } });
   if (recipe.length === 0) throw new UserError(`البوكس «${product.name}» ما له مكونات — أضف الوصفة الأول`);

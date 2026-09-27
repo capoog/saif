@@ -9,7 +9,7 @@ async function main() {
   if (!email || !password) throw new Error("حدد OWNER_EMAIL و OWNER_PASSWORD (في .env محليًا، أو Environment Variables في Vercel)");
   if (password.length < 8) throw new Error("OWNER_PASSWORD لازم يكون 8 حروف على الأقل");
   await seedBase(db, { owner: { email, password, name: process.env.OWNER_NAME || "المالك" } });
-  console.log("✔ البيانات الأولية اتسجلت");
+  console.log("✔ البيانات الأولية تسجّلت");
 }
 
 main()

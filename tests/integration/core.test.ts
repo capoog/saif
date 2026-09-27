@@ -26,7 +26,7 @@ describe("البيانات الأولية", () => {
     const c = await getCapital(db, NOW);
     expect(c.capital.toFixed(2)).toBe("20000.00");
     expect(await money("BANK")).toBe("20000.00");
-    expect(await db.product.count()).toBe(56);
+    expect(await db.product.count({ where: { number: { not: null } } })).toBe(56);
     expect(await db.weeklyTarget.count()).toBe(33);
     expect(await db.engine.count()).toBe(5);
   });

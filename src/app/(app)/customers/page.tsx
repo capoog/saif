@@ -1,13 +1,16 @@
 import Link from "next/link";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/server/db";
+import { requireUser } from "@/server/auth/session";
+import { customerScope } from "@/server/access";
 import { ButtonLink, Card, Empty, Input, PageHeader } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
 export default async function CustomersPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const { q } = await searchParams;
-  const where: Prisma.CustomerWhereInput = { deletedAt: null };
+  const user = await requireUser(["owner", "sales"]);
+  const where: Prisma.CustomerWhereInput = { deletedAt: null, ...customerScope(user) };
   if (q) where.OR = [{ name: { contains: q, mode: "insensitive" } }, { phone: { contains: q.replace(/\D/g, "") || q } }, { sector: { contains: q, mode: "insensitive" } }];
   const customers = await prisma.customer.findMany({
     where,
@@ -22,7 +25,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
         subtitle={`${customers.length}${customers.length === 200 ? "+" : ""} عميل`}
         action={
           <div className="flex gap-2">
-            <ButtonLink href="/customers/import" size="sm" variant="secondary">استيراد CSV</ButtonLink>
+            {user.role === "owner" && <ButtonLink href="/customers/import" size="sm" variant="secondary">استيراد CSV</ButtonLink>}
             <ButtonLink href="/customers/new" size="sm">+ عميل</ButtonLink>
           </div>
         }

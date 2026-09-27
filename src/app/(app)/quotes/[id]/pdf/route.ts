@@ -8,7 +8,10 @@ export const maxDuration = 30;
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUser();
-  if (!user || user.role !== "owner") return new Response("غير مسموح", { status: 401 });
+  if (!user || (user.role !== "owner" && user.role !== "sales")) return new Response("غير مسموح", { status: 401 });
+  if (user.role === "sales" && !(await prisma.quote.findFirst({ where: { id: (await params).id, createdById: user.id }, select: { id: true } }))) {
+    return new Response("غير مسموح", { status: 403 });
+  }
   const doc = await quoteHtml(prisma, (await params).id);
   if (!doc) return new Response("غير موجود", { status: 404 });
   try {

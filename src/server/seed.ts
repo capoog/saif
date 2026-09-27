@@ -3,7 +3,7 @@ import type { ProductStatus } from "@prisma/client";
 import productsJson from "../../seed/products.json";
 import targetsJson from "../../seed/weekly_targets.json";
 import { riyadhStartOfDay, PLAN_START_KEY } from "@/domain/plan-calendar";
-import { CHART, ENGINES } from "./chart";
+import { AGENCY_SERVICE_NAME, CHART, ENGINES } from "./chart";
 import type { Db } from "./db";
 import { postEntry } from "./ledger";
 
@@ -84,6 +84,11 @@ export async function seedBase(db: Db, opts: SeedOptions = {}) {
         },
       });
     }
+  }
+
+  // منتج خدمة لاشتراكات الوكالة (بدون مخزون)
+  if (!(await db.product.findFirst({ where: { kind: "SERVICE", name: AGENCY_SERVICE_NAME } }))) {
+    await db.product.create({ data: { name: AGENCY_SERVICE_NAME, category: "خدمات", kind: "SERVICE", unit: "شهر", status: "ACTIVE", engineId: engines.get("AGENCY")! } });
   }
 
   const opening = opts.openingBalance ?? "20000";

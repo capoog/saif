@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/server/db";
+import { requireUser } from "@/server/auth/session";
+import { customerScope } from "@/server/access";
 import { ACTIVITY_TYPES, DEAL_STAGES } from "@/server/services/crm";
 import { effectiveQuoteStatus, QUOTE_STATUS_LABEL, quoteNumberLabel } from "@/server/services/quotes";
 import { ORDER_STATUS } from "@/lib/labels";
@@ -16,8 +18,10 @@ const activityLabel = new Map(ACTIVITY_TYPES.map((a) => [a.code, a.label]));
 
 export default async function CustomerPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const c = await prisma.customer.findUnique({
-    where: { id },
+  const user = await requireUser(["owner", "sales"]);
+  const owner = user.role === "owner";
+  const c = await prisma.customer.findFirst({
+    where: { id, ...customerScope(user) },
     include: {
       deals: { where: { deletedAt: null }, orderBy: { updatedAt: "desc" } },
       quotes: { orderBy: { date: "desc" } },
@@ -37,7 +41,8 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
           <>
             {c.type === "company" ? "شركة" : "فرد"}
             {c.sector && ` · ${c.sector}`}
-            {c.contact && ` · ${c.contact}`} · مبيعات <Money value={lifetime} />
+            {c.contact && ` · ${c.contact}`}
+            {owner && <> · مبيعات <Money value={lifetime} /></>}
           </>
         }
         action={
@@ -93,7 +98,7 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
         </Card>
       )}
 
-      {c.contracts.length > 0 && (
+      {owner && c.contracts.length > 0 && (
         <Card>
           <CardTitle>العقود</CardTitle>
           {c.contracts.map((k) => (
@@ -105,7 +110,7 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
         </Card>
       )}
 
-      {c.orders.length > 0 && (
+      {owner && c.orders.length > 0 && (
         <Card>
           <CardTitle>الطلبات</CardTitle>
           <div className="divide-y divide-border text-sm">

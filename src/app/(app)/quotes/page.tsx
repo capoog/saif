@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/server/db";
+import { requireUser } from "@/server/auth/session";
+import { quoteScope } from "@/server/access";
 import { effectiveQuoteStatus, QUOTE_STATUS_LABEL, quoteNumberLabel } from "@/server/services/quotes";
 import { date } from "@/lib/format";
 import { Badge, ButtonLink, Card, Empty, Money, PageHeader } from "@/components/ui";
@@ -9,7 +11,8 @@ export const dynamic = "force-dynamic";
 const tone = { DRAFT: "neutral", SENT: "info", ACCEPTED: "ok", REJECTED: "danger", EXPIRED: "warn" } as const;
 
 export default async function QuotesPage() {
-  const quotes = await prisma.quote.findMany({ orderBy: { date: "desc" }, take: 100, include: { customer: { select: { name: true } } } });
+  const user = await requireUser(["owner", "sales"]);
+  const quotes = await prisma.quote.findMany({ where: quoteScope(user), orderBy: { date: "desc" }, take: 100, include: { customer: { select: { name: true } } } });
   return (
     <div className="space-y-4">
       <PageHeader title="عروض الأسعار" action={<ButtonLink href="/quotes/new" size="sm">+ عرض سعر</ButtonLink>} />

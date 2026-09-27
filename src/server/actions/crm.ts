@@ -7,6 +7,7 @@ import { prisma } from "../db";
 import { actorOf, requireUser } from "../auth/session";
 import { createCustomer, createDeal, importCustomers, logActivity, moveDeal, setFollowUp, updateCustomer } from "../services/crm";
 import { dayAt, formObject, run, type ActionState } from "./run";
+import { assertCustomerAccess, assertDealAccess, isOwner } from "../access";
 
 const customerSchema = z.object({
   name: z.string().trim().min(1, "اكتب اسم العميل").max(150),
@@ -21,11 +22,11 @@ const customerSchema = z.object({
 });
 
 export async function createCustomerAction(_prev: ActionState, fd: FormData): Promise<ActionState> {
-  const user = await requireUser();
+  const user = await requireUser(["owner", "sales"]);
   let id = "";
   const next = String(fd.get("next") ?? "");
   const res = await run(async () => {
-    id = (await createCustomer(prisma, actorOf(user), customerSchema.parse(formObject(fd)))).id;
+    id = (await createCustomer(prisma, actorOf(user), { ...customerSchema.parse(formObject(fd)), ownerId: isOwner(user) ? null : user.id })).id;
   });
   if (!res.ok) return res;
   revalidatePath("/customers");
@@ -33,9 +34,11 @@ export async function createCustomerAction(_prev: ActionState, fd: FormData): Pr
 }
 
 export async function updateCustomerAction(_prev: ActionState, fd: FormData): Promise<ActionState> {
-  const user = await requireUser();
+  const user = await requireUser(["owner", "sales"]);
   const res = await run(async () => {
-    await updateCustomer(prisma, actorOf(user), String(fd.get("id")), customerSchema.parse(formObject(fd)));
+    const id = String(fd.get("id"));
+    await assertCustomerAccess(prisma, user, id);
+    await updateCustomer(prisma, actorOf(user), id, customerSchema.parse(formObject(fd)));
   });
   if (res.ok) revalidatePath("/customers");
   return res.ok ? { ok: true, message: "انحفظ" } : res;
@@ -52,7 +55,7 @@ export async function importCustomersAction(_prev: ActionState, fd: FormData): P
 }
 
 export async function createDealAction(_prev: ActionState, fd: FormData): Promise<ActionState> {
-  const user = await requireUser();
+  const user = await requireUser(["owner", "sales"]);
   const res = await run(async () => {
     const v = z
       .object({
@@ -65,6 +68,7 @@ export async function createDealAction(_prev: ActionState, fd: FormData): Promis
         note: z.string().max(1000).optional(),
       })
       .parse(formObject(fd));
+    await assertCustomerAccess(prisma, user, v.customerId);
     const value = v.value?.replace(/,/g, "").trim();
     await createDeal(prisma, actorOf(user), {
       customerId: v.customerId,
@@ -82,11 +86,12 @@ export async function createDealAction(_prev: ActionState, fd: FormData): Promis
 }
 
 export async function moveDealAction(_prev: ActionState, fd: FormData): Promise<ActionState> {
-  const user = await requireUser();
+  const user = await requireUser(["owner", "sales"]);
   const res = await run(async () => {
     const v = z
       .object({ id: z.string(), stage: z.enum(["LEAD", "CONTACTED", "INTERESTED", "QUOTE_SENT", "NEGOTIATION", "DEPOSIT", "WON", "LOST"]), lostReason: z.string().optional() })
       .parse(formObject(fd));
+    await assertDealAccess(prisma, user, v.id);
     await moveDeal(prisma, actorOf(user), v.id, v.stage, v.lostReason);
   });
   if (res.ok) revalidatePath("/crm");
@@ -94,9 +99,10 @@ export async function moveDealAction(_prev: ActionState, fd: FormData): Promise<
 }
 
 export async function followUpAction(_prev: ActionState, fd: FormData): Promise<ActionState> {
-  const user = await requireUser();
+  const user = await requireUser(["owner", "sales"]);
   const res = await run(async () => {
     const id = String(fd.get("id"));
+    await assertDealAccess(prisma, user, id);
     const done = fd.get("done") === "1";
     // "تواصلت": يتسجل تواصل، والمتابعة الجاية على التاريخ الجديد
     if (done) await logActivity(prisma, actorOf(user), { type: String(fd.get("type") || "call"), dealId: id, note: String(fd.get("note") ?? "") || null, nextFollowUpAt: dayAt(String(fd.get("followUp") ?? ""))});
@@ -107,7 +113,7 @@ export async function followUpAction(_prev: ActionState, fd: FormData): Promise<
 }
 
 export async function logActivityAction(_prev: ActionState, fd: FormData): Promise<ActionState> {
-  const user = await requireUser();
+  const user = await requireUser(["owner", "sales"]);
   const res = await run(async () => {
     const v = z
       .object({
@@ -118,6 +124,8 @@ export async function logActivityAction(_prev: ActionState, fd: FormData): Promi
         note: z.string().max(500).optional(),
       })
       .parse(formObject(fd));
+    if (v.customerId) await assertCustomerAccess(prisma, user, v.customerId);
+    if (v.dealId) await assertDealAccess(prisma, user, v.dealId);
     const r = await logActivity(prisma, actorOf(user), { type: v.type, count: v.count, customerId: v.customerId || null, dealId: v.dealId || null, note: v.note || null });
     return { ok: true, message: `+${r.count} تواصل` };
   });

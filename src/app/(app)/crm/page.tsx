@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/server/db";
+import { requireUser } from "@/server/auth/session";
 import { crmToday, DEAL_STAGES } from "@/server/services/crm";
 import { getSettings } from "@/server/services/settings";
 import { date } from "@/lib/format";
@@ -29,7 +30,8 @@ function Meter({ value, min, max, label, children }: { value: number; min: numbe
 }
 
 export default async function CrmPage() {
-  const [d, s] = await Promise.all([crmToday(prisma), getSettings(prisma)]);
+  const user = await requireUser(["owner", "sales"]);
+  const [d, s] = await Promise.all([crmToday(prisma, new Date(), user.role === "owner" ? null : user.id), getSettings(prisma)]);
   const byStage = new Map(DEAL_STAGES.map((st) => [st.stage, d.deals.filter((x) => x.stage === st.stage)]));
 
   return (

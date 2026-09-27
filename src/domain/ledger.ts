@@ -6,6 +6,8 @@ export interface LineInput {
   credit?: DecimalLike;
   engineId?: string | null;
   supplierId?: string | null;
+  freelancerId?: string | null;
+  salesUserId?: string | null;
   memo?: string;
 }
 

@@ -47,6 +47,15 @@ export const DEFAULT_SETTINGS = {
   carSellNowDay: 21, // بع فورًا بخسارة لا تتعدى carMaxLossPct
   carMaxLossPct: 5,
 
+  // الوكالة الرقمية
+  agencyMinMarginPct: 35, // تنبيه لو هامش العميل أقل
+  agencyTargetDay60: 5, // عدد العملاء المستهدف عند اليوم 60
+  agencyTargetDay120: 15,
+  agencyTargetDay229: 25,
+
+  // المشاريع الكبيرة
+  projectMaxPct: 40, // تنبيه لو قيمة العقد > % من رأس المال
+
   // B2B وعروض الأسعار
   b2bDepositPct: 50,
   quoteValidityDays: 7,

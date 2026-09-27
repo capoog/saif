@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/server/db";
+import { requireUser } from "@/server/auth/session";
+import { quoteScope } from "@/server/access";
 import { effectiveQuoteStatus, QUOTE_STATUS_LABEL, quoteNumberLabel } from "@/server/services/quotes";
 import { date } from "@/lib/format";
 import { Alert, Badge, Card, CardTitle, Money, PageHeader } from "@/components/ui";
@@ -10,12 +12,14 @@ export const dynamic = "force-dynamic";
 
 export default async function QuotePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const q = await prisma.quote.findUnique({ where: { id }, include: { customer: true, items: { orderBy: { sortOrder: "asc" } }, contract: true, deal: true } });
+  const user = await requireUser(["owner", "sales"]);
+  const owner = user.role === "owner";
+  const q = await prisma.quote.findFirst({ where: { id, ...quoteScope(user) }, include: { customer: true, items: { orderBy: { sortOrder: "asc" } }, contract: true, deal: true } });
   if (!q) notFound();
   const st = effectiveQuoteStatus(q);
   const label = quoteNumberLabel(q);
   const deposit = (Number(q.total) * Number(q.depositPct)) / 100;
-  const canConvert = !q.carDealId && !q.contract && st !== "REJECTED" && q.items.every((i) => i.productId);
+  const canConvert = owner && !q.carDealId && !q.contract && st !== "REJECTED" && q.items.every((i) => i.productId);
 
   return (
     <div className="mx-auto max-w-2xl space-y-4">
@@ -61,6 +65,8 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
           <CardTitle>العميل وافق؟ حوّله لعقد</CardTitle>
           <ContractForm quoteId={q.id} items={q.items.map((i) => ({ description: i.description, quantity: i.quantity }))} />
         </Card>
+      ) : !owner ? (
+        st !== "REJECTED" && <Alert tone="info">لما العميل يوافق، المالك يحوّل العرض لعقد ويسجّل العربون.</Alert>
       ) : q.carDealId ? (
         <Alert tone="info" title="عرض سعر سيارة">
           لما تنباع، سجّل البيع من <Link href={`/cars/${q.carDealId}`} className="underline">صفحة السيارة</Link>.

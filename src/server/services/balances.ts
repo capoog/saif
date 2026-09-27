@@ -78,17 +78,19 @@ function sumKind(balances: AccountBalance[], kind: AccountKind): Decimal {
 }
 
 export async function getCapital(db: Db | Tx, asOf: Date = new Date()): Promise<CapitalBreakdown> {
-  const [balances, customers, settings] = await Promise.all([
+  const [balances, customers, projects, settings] = await Promise.all([
     accountBalances(db, asOf),
     customerBalances(db, asOf),
+    projectBalances(db, asOf),
     getSettings(db),
   ]);
   return computeCapital({
     asOf,
     cash: sumKind(balances, "CASH"),
     wallets: sumKind(balances, "WALLET"),
+    restrictedCash: sumKind(balances, "RESTRICTED_CASH"),
     inventory: sumKind(balances, "INVENTORY"),
-    customerBalances: customers,
+    customerBalances: [...customers, ...projects],
     supplierPayable: sumKind(balances, "SUPPLIER_PAYABLE"),
     freelancerPayable: sumKind(balances, "FREELANCER_PAYABLE"),
     loans: sumKind(balances, "LOAN"),
@@ -97,4 +99,24 @@ export async function getCapital(db: Db | Tx, asOf: Date = new Date()): Promise<
     partnerCapital: sumKind(balances, "PARTNER_CAPITAL"),
     receivableSecuredDays: settings.receivableSecuredDays,
   });
+}
+
+/**
+ * رصيد الجهة لكل مشروع على حساب العملاء: دائن = دفعة مقدمة (التزام)، مدين = مستخلصات معتمدة ما تحصّلت (ذمة).
+ * تاريخ الاستحقاق = آخر مستخلص اعتُمد.
+ */
+export async function projectBalances(db: Db | Tx, asOf?: Date): Promise<OrderCustomerBalance[]> {
+  const dateFilter = asOf ? Prisma.sql`AND e."date" <= ${asOf}` : Prisma.empty;
+  const rows = await db.$queryRaw<{ projectId: string; balance: Prisma.Decimal; dueFrom: Date }[]>`
+    SELECT e."projectId" AS "projectId", SUM(l."debit" - l."credit") AS "balance",
+           COALESCE((SELECT MAX(i."approvedAt") FROM "ProjectInvoice" i WHERE i."projectId" = e."projectId" AND i."approvedAt" IS NOT NULL), MIN(e."date")) AS "dueFrom"
+    FROM "JournalLine" l
+    JOIN "JournalEntry" e ON e."id" = l."entryId"
+    JOIN "LedgerAccount" a ON a."id" = l."accountId"
+    WHERE a."kind" = 'CUSTOMER' AND e."projectId" IS NOT NULL ${dateFilter}
+    GROUP BY e."projectId"
+    HAVING SUM(l."debit" - l."credit") <> 0`;
+  if (rows.length === 0) return [];
+  const supply = await db.engine.findUnique({ where: { code: "SUPPLY" } });
+  return rows.map((r) => ({ orderId: `project:${r.projectId}`, engineId: supply?.id ?? "", balance: D(r.balance), dueFrom: r.dueFrom }));
 }
