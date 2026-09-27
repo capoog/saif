@@ -59,11 +59,29 @@ const GROUPS: { title: string; fields: [Key, string, string?][] }[] = [
     ],
   },
   {
-    title: "قرارات الإغلاق و B2B",
+    title: "قرارات الإغلاق",
     fields: [
       ["surplusToTopEnginePct", "% من الفائض للمحرك الأعلى"],
       ["onTargetAdBoostPct", "رفع ميزانية الإعلان الرابح %"],
-      ["b2bDepositPct", "عربون B2B الافتراضي %"],
+    ],
+  },
+  {
+    title: "B2B وعروض الأسعار",
+    fields: [
+      ["b2bDepositPct", "العربون الافتراضي %"],
+      ["quoteValidityDays", "صلاحية العرض (أيام)"],
+      ["ramadanContractsTarget", "هدف عقود رمضان"],
+    ],
+  },
+  {
+    title: "العملاء والإعلانات",
+    fields: [
+      ["dailyOutreachMin", "تواصلات يومية (من)"],
+      ["dailyOutreachMax", "تواصلات يومية (إلى)"],
+      ["dailyQuotesMin", "عروض يومية (من)"],
+      ["dailyQuotesMax", "عروض يومية (إلى)"],
+      ["adStopMinSpend", "أوقف الإعلان بعد إنفاق (ريال)"],
+      ["adStopCpaMarginPct", "لو CPA أكبر من % من ربح الطلب"],
     ],
   },
 ];
@@ -89,7 +107,9 @@ export function SettingsForm({ settings }: { settings: Settings }) {
           <Field label="رقم السجل التجاري"><Input name="businessCr" defaultValue={settings.businessCr} dir="ltr" /></Field>
           <Field label="الرقم الضريبي"><Input name="businessVatNo" defaultValue={settings.businessVatNo} dir="ltr" /></Field>
           <Field label="الجوال"><Input name="businessPhone" defaultValue={settings.businessPhone} dir="ltr" /></Field>
+          <Field label="آخر موعد لعقود رمضان"><Input name="ramadanDeadline" type="date" defaultValue={settings.ramadanDeadline} /></Field>
         </div>
+        <p className="mt-2 text-xs text-muted">اسم المنشأة والسجل والرقم الضريبي بيظهروا في عروض الأسعار.</p>
       </Card>
       {GROUPS.map((g) => (
         <Card key={g.title}>

@@ -6,7 +6,7 @@ import { z } from "zod";
 import { prisma } from "../db";
 import { actorOf, requireUser } from "../auth/session";
 import { createTransaction, deleteTransaction } from "../services/transactions";
-import { entryDate, formObject, moneyStr, run, type ActionState } from "./run";
+import { entryDate, formObject, moneyStr, overrideOf, run, type ActionState } from "./run";
 
 const schema = z.object({
   type: z.enum(["DEPOSIT", "WITHDRAWAL", "TRANSFER", "EXPENSE"], { error: "نوع الحركة غير صالح" }),
@@ -18,6 +18,8 @@ const schema = z.object({
   date: z.string().optional(),
   note: z.string().max(300).optional(),
   again: z.string().optional(),
+  supplierId: z.string().optional(),
+  override: z.string().optional(),
 });
 
 export async function createTransactionAction(_prev: ActionState, fd: FormData): Promise<ActionState> {
@@ -35,6 +37,8 @@ export async function createTransactionAction(_prev: ActionState, fd: FormData):
       engineId: v.engineId || null,
       date: entryDate(v.date),
       note: v.note || null,
+      supplierId: v.supplierId || null,
+      override: overrideOf(fd),
     });
   });
   if (!res.ok) return res;

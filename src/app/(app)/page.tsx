@@ -64,6 +64,33 @@ export default async function Dashboard() {
         )}
       </Card>
 
+      <div className="grid grid-cols-2 gap-2">
+        <Link href="/crm" className="block">
+          <Card className="h-full p-3 hover:border-primary/50">
+            <div className="text-xs text-muted">تواصلات النهارده</div>
+            <div className="mt-1 flex items-baseline justify-between">
+              <span className={cn("num text-2xl font-bold", d.crm.activitiesToday >= d.settings.dailyOutreachMin ? "text-ok" : "text-warn")}>{d.crm.activitiesToday}</span>
+              <span className="num text-xs text-muted">/ {d.settings.dailyOutreachMin}–{d.settings.dailyOutreachMax}</span>
+            </div>
+            <div className="mt-1 text-xs text-muted">
+              عروض <span className="num">{d.crm.quotesToday}</span> · متابعات <span className="num">{d.crm.followUps}</span>
+            </div>
+          </Card>
+        </Link>
+        <Link href="/b2b" className="block">
+          <Card className="h-full p-3 hover:border-primary/50">
+            <div className="text-xs text-muted">عقود رمضان بعربون</div>
+            <div className="mt-1 flex items-baseline justify-between">
+              <span className="num text-2xl font-bold">{d.ramadan.signed}</span>
+              <span className="num text-xs text-muted">/ {d.ramadan.target}</span>
+            </div>
+            <div className="mt-1 text-xs text-muted">
+              باقي <span className="num">{d.ramadan.daysLeft}</span> يوم
+            </div>
+          </Card>
+        </Link>
+      </div>
+
       <Card>
         <CardTitle>المسار: المستهدف مقابل الفعلي</CardTitle>
         <CapitalChart data={d.chart} />

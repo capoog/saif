@@ -5,6 +5,8 @@ import { createTransactionAction } from "@/server/actions/accounts";
 import type { ActionState } from "@/server/actions/run";
 import { Field, Input, Select, cn } from "@/components/ui";
 import { FormError, SubmitButton } from "@/components/form-status";
+import { OverrideField } from "@/components/override";
+import { resetForm } from "@/components/form-reset-guard";
 
 type TxType = "DEPOSIT" | "WITHDRAWAL" | "TRANSFER" | "EXPENSE";
 const TYPES: { value: TxType; label: string }[] = [
@@ -29,7 +31,7 @@ export function TransactionForm(p: Props) {
   const formRef = useRef<HTMLFormElement>(null);
   // "حفظ + التالي": نفضّي الفورم بعد النجاح عشان الإدخال المتتالي يبقى سريع
   useEffect(() => {
-    if (state.ok && state.message) formRef.current?.reset();
+    if (state.ok && state.message) resetForm(formRef.current);
   }, [state]);
   const categories = type === "EXPENSE" ? p.expenseCategories : type === "DEPOSIT" ? p.depositSources : type === "WITHDRAWAL" ? p.withdrawalPurposes : [];
   const bank = p.accounts.find((a) => a.code === "BANK")?.id;
@@ -102,6 +104,7 @@ export function TransactionForm(p: Props) {
         </Field>
       </div>
 
+      <OverrideField state={state} />
       <FormError state={state} />
       {state.message && <div className="rounded-xl bg-ok-bg px-3 py-2 text-sm text-ok">{state.message}</div>}
       <div className="grid grid-cols-[1fr_auto] gap-2">

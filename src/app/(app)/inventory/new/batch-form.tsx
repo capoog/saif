@@ -5,17 +5,19 @@ import { createBatchAction } from "@/server/actions/inventory";
 import type { ActionState } from "@/server/actions/run";
 import { Field, Input, Select } from "@/components/ui";
 import { FormError, SubmitButton } from "@/components/form-status";
+import { OverrideField } from "@/components/override";
 
 interface Props {
   productId?: string;
-  products: { id: string; name: string; category: string; buyRange: string | null; sellPrice: string }[];
+  products: { id: string; name: string; unit: string; category: string; buyRange: string | null; sellPrice: string }[];
+  suppliers: { id: string; name: string }[];
   accounts: { id: string; name: string; code: string; balance: string }[];
 }
 
 const n = (v: string) => Number(v.replace(/,/g, "")) || 0;
 const fmt = (v: number) => v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-export function BatchForm({ productId, products, accounts }: Props) {
+export function BatchForm({ productId, products, accounts, suppliers }: Props) {
   const [state, action] = useActionState<ActionState, FormData>(createBatchAction, {});
   const [pid, setPid] = useState(productId ?? products[0]?.id ?? "");
   const [qty, setQty] = useState("");
@@ -45,8 +47,8 @@ export function BatchForm({ productId, products, accounts }: Props) {
         </Select>
       </Field>
       <div className="grid grid-cols-2 gap-3">
-        <Field label="الكمية">
-          <Input name="quantity" inputMode="numeric" required value={qty} onChange={(e) => setQty(e.target.value)} className="num" />
+        <Field label={`الكمية (${product?.unit ?? ""})`}>
+          <Input name="quantity" inputMode="decimal" required value={qty} onChange={(e) => setQty(e.target.value)} className="num" />
         </Field>
         <Field label="سعر شراء الوحدة">
           <Input name="unitPrice" inputMode="decimal" required value={price} onChange={(e) => setPrice(e.target.value)} className="num" />
@@ -68,8 +70,8 @@ export function BatchForm({ productId, products, accounts }: Props) {
           <Field label="المدفوع الآن" hint="الباقي يتسجل التزام للمورد">
             <Input name="paidAmount" inputMode="decimal" defaultValue="0" className="num" />
           </Field>
-          <Field label="اسم المورد">
-            <Input name="supplierName" required />
+          <Field label="المورد">
+            <SupplierPicker suppliers={suppliers} required />
           </Field>
         </div>
       )}
@@ -82,7 +84,7 @@ export function BatchForm({ productId, products, accounts }: Props) {
       </Field>
       {paidFull && (
         <Field label="المورد (اختياري)">
-          <Input name="supplierName" />
+          <SupplierPicker suppliers={suppliers} />
         </Field>
       )}
       <div className="grid grid-cols-2 gap-3">
@@ -93,8 +95,27 @@ export function BatchForm({ productId, products, accounts }: Props) {
           <Input name="date" type="date" defaultValue={new Date(Date.now() + 3 * 3600000).toISOString().slice(0, 10)} />
         </Field>
       </div>
+      <OverrideField state={state} />
       <FormError state={state} />
       <SubmitButton size="lg">حفظ الدفعة</SubmitButton>
     </form>
+  );
+}
+
+/** مورد مسجل (دفتر فرعي بمستحقاته) أو اسم حر */
+function SupplierPicker({ suppliers, required }: { suppliers: { id: string; name: string }[]; required?: boolean }) {
+  const [id, setId] = useState(suppliers[0]?.id ?? "");
+  if (suppliers.length === 0) return <Input name="supplierName" required={required} placeholder="اسم المورد" />;
+  return (
+    <div className="space-y-2">
+      <Select name="supplierId" value={id} onChange={(e) => setId(e.target.value)} required={required}>
+        {!required && <option value="">بدون</option>}
+        {suppliers.map((s) => (
+          <option key={s.id} value={s.id}>{s.name}</option>
+        ))}
+        <option value="">مورد مش مسجل…</option>
+      </Select>
+      {!id && required && <Input name="supplierName" required placeholder="اسم المورد" />}
+    </div>
   );
 }

@@ -3,26 +3,21 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { ArrowLeftRight, Boxes, CalendarCheck, LayoutDashboard, Plus, Receipt, ShoppingBag, Wallet, X, PackagePlus } from "lucide-react";
+import { Plus, X } from "lucide-react";
+import { MORE_LINKS, QUICK, TABS } from "./nav-links";
 import { cn } from "./ui";
 
-const TABS = [
-  { href: "/", label: "الرئيسية", icon: LayoutDashboard },
-  { href: "/orders", label: "الطلبات", icon: ShoppingBag },
-  { href: "/products", label: "المخزون", icon: Boxes },
-  { href: "/accounts", label: "الحسابات", icon: Wallet },
-  { href: "/close", label: "الإغلاق", icon: CalendarCheck },
-];
+const SIDE = [...TABS.filter((t) => t.href !== "/more"), ...MORE_LINKS];
 
-const QUICK = [
-  { href: "/orders/new", label: "طلب جديد", icon: ShoppingBag },
-  { href: "/accounts/new?type=EXPENSE", label: "مصروف", icon: Receipt },
-  { href: "/inventory/new", label: "شراء دفعة", icon: PackagePlus },
-  { href: "/accounts/new", label: "حركة نقدية", icon: ArrowLeftRight },
-];
+const GROUPS: Record<string, string[]> = {
+  "/products": ["/products", "/inventory"],
+  "/crm": ["/crm", "/customers"],
+  "/more": ["/more", "/accounts", "/close", "/quotes", "/b2b", "/suppliers", "/purchase-orders", "/ads", "/settings"],
+};
 
 function isActive(path: string, href: string) {
-  return href === "/" ? path === "/" : path.startsWith(href) || (href === "/products" && path.startsWith("/inventory"));
+  if (href === "/") return path === "/";
+  return (GROUPS[href] ?? [href]).some((p) => path.startsWith(p));
 }
 
 export function BottomNav() {
@@ -45,8 +40,12 @@ export function SideNav() {
   const path = usePathname();
   return (
     <nav className="no-print hidden w-52 shrink-0 space-y-1 md:block">
-      {TABS.map(({ href, label, icon: Icon }) => (
-        <Link key={href} href={href} className={cn("flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm", isActive(path, href) ? "bg-primary/10 font-semibold text-primary" : "text-muted hover:bg-subtle")}>
+      {SIDE.map(({ href, label, icon: Icon }) => (
+        <Link
+          key={href}
+          href={href}
+          className={cn("flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm", (href === "/" ? path === "/" : path.startsWith(href)) ? "bg-primary/10 font-semibold text-primary" : "text-muted hover:bg-subtle")}
+        >
           <Icon className="size-5" />
           {label}
         </Link>

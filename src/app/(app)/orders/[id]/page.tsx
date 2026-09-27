@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/server/db";
 import { accountBalances } from "@/server/services/balances";
@@ -102,6 +103,11 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
         <p className="mb-3 text-xs text-muted">الفاتورة الرسمية بتطلع من نظام الفوترة المعتمد. سجّل رقمها ورابطها هنا.</p>
         <InvoiceForm id={order.id} no={order.officialInvoiceNo ?? ""} url={order.officialInvoiceUrl ?? ""} />
       </Card>
+      {order.contractId && (
+        <Link href={`/b2b/${order.contractId}`} className="block text-sm text-primary">
+          جزء من عقد B2B ← افتح العقد
+        </Link>
+      )}
       {order.note && <p className="text-sm text-muted">ملاحظة: {order.note}</p>}
     </div>
   );

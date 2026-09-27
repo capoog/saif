@@ -406,3 +406,29 @@ export function boxesAvailable(levels: Map<string, StockLevel>, recipe: { compon
   }
   return min === Infinity ? 0 : min;
 }
+
+/** تكلفة تقديرية لكل المنتجات مرة واحدة (للتسعير في عروض الأسعار): البوكس = مجموع مكوناته */
+export async function costEstimates(db: Db | Tx): Promise<Map<string, Decimal | null>> {
+  const [levels, products, lastBatches] = await Promise.all([
+    stockLevels(db),
+    db.product.findMany({ where: { deletedAt: null }, select: { id: true, kind: true, estimatedUnitCost: true, recipe: { select: { componentId: true, quantity: true } } } }),
+    db.inventoryBatch.findMany({ where: { deletedAt: null }, orderBy: { receivedAt: "desc" }, distinct: ["productId"], select: { productId: true, unitCost: true } }),
+  ]);
+  const last = new Map(lastBatches.map((b) => [b.productId, D(b.unitCost)]));
+  const out = new Map<string, Decimal | null>();
+  for (const p of products.filter((p) => p.kind === "GOODS")) {
+    const l = levels.get(p.id);
+    out.set(p.id, l && l.onHand.gt(0) ? l.value.div(l.onHand) : (last.get(p.id) ?? (p.estimatedUnitCost ? D(p.estimatedUnitCost) : null)));
+  }
+  for (const p of products.filter((p) => p.kind === "BOX")) {
+    let total = ZERO;
+    let ok = p.recipe.length > 0;
+    for (const r of p.recipe) {
+      const c = out.get(r.componentId);
+      if (!c) ok = false;
+      else total = total.plus(c.times(D(r.quantity)));
+    }
+    out.set(p.id, ok ? round2(total) : null);
+  }
+  return out;
+}

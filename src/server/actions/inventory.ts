@@ -8,8 +8,9 @@ import { UserError } from "../errors";
 import { actorOf, requireUser } from "../auth/session";
 import { adjustStock, createBatch } from "../services/inventory";
 import { createProduct, updateProduct } from "../services/products";
+import { setRecipe } from "../services/recipes";
 import { D } from "@/domain/money";
-import { entryDate, formObject, moneyStr, optionalMoneyStr, qtyStr, run, type ActionState } from "./run";
+import { entryDate, formObject, moneyStr, optionalMoneyStr, overrideOf, qtyStr, run, type ActionState } from "./run";
 
 const batchSchema = z.object({
   productId: z.string().min(1, "اختار المنتج"),
@@ -20,6 +21,8 @@ const batchSchema = z.object({
   paidFull: z.string().optional(),
   paidFromId: z.string().optional(),
   supplierName: z.string().max(120).optional(),
+  supplierId: z.string().optional(),
+  override: z.string().optional(),
   sellPrice: z.string().optional(),
   date: z.string().optional(),
   note: z.string().max(300).optional(),
@@ -41,6 +44,8 @@ export async function createBatchAction(_prev: ActionState, fd: FormData): Promi
       paidAmount: v.paidFull === "1" ? total : v.paidAmount,
       paidFromId: v.paidFromId || null,
       supplierName: v.supplierName || null,
+      supplierId: v.supplierId || null,
+      override: overrideOf(fd),
       sellPrice: v.sellPrice?.trim() || null,
       note: v.note || null,
     });
@@ -50,6 +55,13 @@ export async function createBatchAction(_prev: ActionState, fd: FormData): Promi
   redirect(`/products/${productId}`);
 }
 
+const priceOpt = (label: string) =>
+  z
+    .string()
+    .optional()
+    .transform((v) => (v ?? "").trim().replace(/,/g, ""))
+    .refine((v) => v === "" || /^\d+(\.\d{1,4})?$/.test(v), `${label} غير صالح`);
+
 export async function updateProductAction(_prev: ActionState, fd: FormData): Promise<ActionState> {
   const user = await requireUser();
   const res = await run(async () => {
@@ -57,16 +69,40 @@ export async function updateProductAction(_prev: ActionState, fd: FormData): Pro
       .object({
         id: z.string(),
         status: z.enum(["PRIORITY_TEST", "TESTING", "ACTIVE", "STOPPED", "LATER", "AVOID"]),
-        defaultSellPrice: z.string().optional(),
+        kind: z.enum(["GOODS", "BOX"]).optional(),
+        unit: z.string().max(20).optional(),
+        defaultSellPrice: priceOpt("سعر البيع"),
+        estimatedUnitCost: priceOpt("التكلفة التقديرية"),
         notes: z.string().max(1000).optional(),
       })
       .parse(formObject(fd));
-    const price = v.defaultSellPrice?.trim().replace(/,/g, "");
-    if (price && !/^\d+(\.\d{1,2})?$/.test(price)) throw new UserError("سعر البيع غير صالح");
-    await updateProduct(prisma, actorOf(user), v.id, { status: v.status, defaultSellPrice: price || null, notes: v.notes ?? null });
+    await updateProduct(prisma, actorOf(user), v.id, {
+      status: v.status,
+      kind: v.kind,
+      unit: v.unit,
+      defaultSellPrice: v.defaultSellPrice || null,
+      estimatedUnitCost: v.estimatedUnitCost || null,
+      notes: v.notes ?? null,
+    });
   });
   if (res.ok) revalidatePath("/", "layout");
   return res.ok ? { ok: true, message: "اتحفظ" } : res;
+}
+
+export async function setRecipeAction(_prev: ActionState, fd: FormData): Promise<ActionState> {
+  const user = await requireUser();
+  const res = await run(async () => {
+    const boxId = String(fd.get("boxId"));
+    const comps = fd.getAll("componentId").map(String);
+    const qtys = fd.getAll("quantity").map(String);
+    const lines = comps
+      .map((componentId, i) => ({ componentId, quantity: (qtys[i] ?? "").trim() }))
+      .filter((l) => l.componentId && l.quantity);
+    for (const l of lines) if (!/^\d+(\.\d{1,3})?$/.test(l.quantity)) throw new UserError("كمية مكوّن غير صالحة");
+    await setRecipe(prisma, actorOf(user), boxId, lines);
+  });
+  if (res.ok) revalidatePath("/", "layout");
+  return res.ok ? { ok: true, message: "اتحفظت الوصفة" } : res;
 }
 
 export async function adjustStockAction(_prev: ActionState, fd: FormData): Promise<ActionState> {
@@ -85,9 +121,17 @@ export async function createProductAction(_prev: ActionState, fd: FormData): Pro
   let id = "";
   const res = await run(async () => {
     const v = z
-      .object({ name: z.string().min(1, "اكتب اسم المنتج"), category: z.string(), engineId: z.string().min(1), defaultSellPrice: z.string().optional(), unit: z.string().optional() })
+      .object({
+        name: z.string().min(1, "اكتب اسم المنتج"),
+        category: z.string(),
+        engineId: z.string().min(1),
+        kind: z.enum(["GOODS", "BOX"]).default("GOODS"),
+        defaultSellPrice: priceOpt("سعر البيع"),
+        estimatedUnitCost: priceOpt("التكلفة التقديرية"),
+        unit: z.string().optional(),
+      })
       .parse(formObject(fd));
-    id = (await createProduct(prisma, actorOf(user), v)).id;
+    id = (await createProduct(prisma, actorOf(user), { ...v, defaultSellPrice: v.defaultSellPrice || null, estimatedUnitCost: v.estimatedUnitCost || null })).id;
   });
   if (!res.ok) return res;
   revalidatePath("/products");
