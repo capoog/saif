@@ -1,0 +1,33 @@
+name: Daily DB backup
+
+# نسخة احتياطية يومية مشفّرة (بالإضافة لـ point-in-time restore في Neon).
+# المطلوب في Settings → Secrets: DATABASE_URL_BACKUP (رابط Neon المباشر) و BACKUP_PASSPHRASE.
+on:
+  schedule:
+    - cron: "17 0 * * *" # 3:17 فجرًا بتوقيت الرياض
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install pg_dump 16
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y postgresql-client-16 || sudo apt-get install -y postgresql-client
+      - name: Dump and encrypt
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL_BACKUP }}
+          PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          test -n "$DATABASE_URL" && test -n "$PASSPHRASE"
+          FILE="saif-$(date -u +%Y-%m-%d).dump"
+          pg_dump --format=custom --no-owner "$DATABASE_URL" -f "$FILE"
+          gpg --batch --yes --pinentry-mode loopback --passphrase "$PASSPHRASE" --symmetric --cipher-algo AES256 "$FILE"
+          rm "$FILE"
+          echo "FILE=$FILE.gpg" >> "$GITHUB_ENV"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.FILE }}
+          path: ${{ env.FILE }}
+          retention-days: 30

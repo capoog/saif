@@ -279,3 +279,33 @@ export async function adjustStock(db: Db, actor: Actor, productId: string, count
     return { diff, value };
   });
 }
+
+/** مؤشرات المنتج: الكمية المباعة، الإيراد بدون ضريبة، التكلفة، الهامش الفعلي، سرعة البيع */
+export async function productMetrics(db: Db | Tx, productId: string, now: Date) {
+  const items = await db.orderItem.findMany({
+    where: { productId, order: { status: "DELIVERED", deletedAt: null } },
+    include: { order: { select: { vatRate: true, pricesIncludeVat: true, deliveredAt: true } } },
+  });
+  let qty = 0;
+  let revenue = ZERO;
+  let cogs = ZERO;
+  let recentQty = 0;
+  const since = now.getTime() - 14 * 86400000;
+  for (const it of items) {
+    qty += it.quantity;
+    const rate = D(it.order.vatRate);
+    const net = it.order.pricesIncludeVat && rate.gt(0) ? D(it.lineTotal).div(rate.plus(1)) : D(it.lineTotal);
+    revenue = revenue.plus(net);
+    cogs = cogs.plus(D(it.cogs));
+    if (it.order.deliveredAt && it.order.deliveredAt.getTime() >= since) recentQty += it.quantity;
+  }
+  revenue = round2(revenue);
+  return {
+    qtySold: qty,
+    revenue,
+    cogs: round2(cogs),
+    grossProfit: round2(revenue.minus(cogs)),
+    marginPct: revenue.gt(0) ? round2(revenue.minus(cogs).div(revenue).times(100)) : null,
+    velocityPerDay: Math.round((recentQty / 14) * 100) / 100,
+  };
+}

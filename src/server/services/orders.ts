@@ -16,6 +16,7 @@ export interface OrderItemInput {
 }
 
 export interface PaymentInput {
+  /** "FULL" في إنشاء الطلب = الإجمالي المحسوب */
   amount: string;
   method: string;
   accountId: string;
@@ -121,8 +122,9 @@ export async function createOrder(db: Db, actor: Actor, input: CreateOrderInput)
     });
     await audit(tx, actor, "create", "Order", order.id, { after: { ...order, items: input.items } });
 
-    if (input.payment && D(input.payment.amount).gt(0)) {
-      await addPaymentTx(tx, actor, order.id, { ...input.payment, date: input.payment.date ?? input.date });
+    if (input.payment) {
+      const amount = input.payment.amount === "FULL" ? totals.total.toFixed(2) : input.payment.amount;
+      if (D(amount).gt(0)) await addPaymentTx(tx, actor, order.id, { ...input.payment, amount, date: input.payment.date ?? input.date });
     }
     if (input.status !== "NEW") await changeStatusTx(tx, actor, order.id, input.status, input.date);
     return tx.order.findUniqueOrThrow({ where: { id: order.id } });

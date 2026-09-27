@@ -1,0 +1,43 @@
+"use client";
+
+import { useActionState } from "react";
+import { createProductAction } from "@/server/actions/inventory";
+import type { ActionState } from "@/server/actions/run";
+import { Field, Input, Select } from "@/components/ui";
+import { FormError, SubmitButton } from "@/components/form-status";
+
+export function NewProductForm({ engines, categories }: { engines: { id: string; name: string; code: string }[]; categories: string[] }) {
+  const [state, action] = useActionState<ActionState, FormData>(createProductAction, {});
+  return (
+    <form action={action} className="space-y-4">
+      <Field label="اسم المنتج">
+        <Input name="name" required autoFocus />
+      </Field>
+      <Field label="الفئة">
+        <Input name="category" list="cats" required />
+        <datalist id="cats">
+          {categories.map((c) => (
+            <option key={c} value={c} />
+          ))}
+        </datalist>
+      </Field>
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="المحرك">
+          <Select name="engineId" defaultValue={engines.find((e) => e.code === "ECOM")?.id}>
+            {engines.map((e) => (
+              <option key={e.id} value={e.id}>{e.name}</option>
+            ))}
+          </Select>
+        </Field>
+        <Field label="الوحدة">
+          <Input name="unit" defaultValue="قطعة" />
+        </Field>
+      </div>
+      <Field label="سعر البيع الافتراضي">
+        <Input name="defaultSellPrice" inputMode="decimal" className="num" />
+      </Field>
+      <FormError state={state} />
+      <SubmitButton size="lg">إضافة</SubmitButton>
+    </form>
+  );
+}
