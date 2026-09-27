@@ -14,6 +14,7 @@ import { adsOverview } from "./ads";
 import { ramadanCounter } from "./b2b";
 import { crmToday, overdueFollowUpsCount } from "./crm";
 import { carTitle, carView } from "./cars";
+import { clientMargins, dueSubscriptions, monthKeyOf, prevMonthKey } from "./agency";
 
 export type AlertTone = "danger" | "warn" | "info";
 export interface DashAlert {
@@ -105,6 +106,24 @@ export async function alerts(db: Db, now: Date, settings: Settings, cap: Capital
 
   const overdue = await overdueFollowUpsCount(db, now);
   if (overdue > 0) out.push({ tone: "warn", title: `${overdue} متابعة فات معادها`, href: "/crm" });
+
+  // الوكالة
+  const due = await dueSubscriptions(db, now);
+  if (due.length > 0) out.push({ tone: "warn", title: `${due.length} اشتراك وكالة مستحق`, detail: due.slice(0, 3).map((d) => d.customer.name).join("، "), href: "/agency?tab=subs" });
+  const agencyMonth = riyadhDateKey(now).slice(8) <= "07" ? prevMonthKey(now) : monthKeyOf(now);
+  for (const m of (await clientMargins(db, agencyMonth, settings)).filter((m) => m.low)) {
+    out.push({ tone: "warn", title: `هامش العميل ${m.name} ${m.marginPct!.toFixed(0)}%`, detail: `أقل من ${settings.agencyMinMarginPct}% — ارفع السعر أو قلّل النطاق.`, href: "/agency" });
+  }
+  const lateTasks = await db.agencyTask.count({ where: { status: { in: ["TODO", "IN_PROGRESS"] }, dueAt: { lt: now } } });
+  if (lateTasks > 0) out.push({ tone: "warn", title: `${lateTasks} مهمة وكالة متأخرة`, href: "/agency?tab=tasks" });
+
+  // المشاريع الكبيرة
+  const projects = await db.bigProject.findMany({ where: { status: { in: ["BIDDING", "ACTIVE"] } }, select: { id: true, name: true, value: true, advancePct: true } });
+  const projMax = cap.capital.times(settings.projectMaxPct).div(100);
+  for (const p of projects) {
+    if (D(p.value).gt(projMax)) out.push({ tone: "danger", title: `مشروع أكبر من ${settings.projectMaxPct}% من رأس المال: ${p.name}`, detail: `القيمة ${D(p.value).toFixed(0)} والحد ${projMax.toFixed(0)}.`, href: `/projects/${p.id}` });
+    if (D(p.advancePct).isZero()) out.push({ tone: "warn", title: `مشروع بدون دفعة مقدمة: ${p.name}`, detail: "تمويل التنفيذ كله من سيولتك — فاوض على مقدمة.", href: `/projects/${p.id}` });
+  }
 
   const noInvoice = await db.order.count({ where: { status: "DELIVERED", officialInvoiceNo: null, deletedAt: null } });
   if (noInvoice > 0 && settings.vatRegistered) {

@@ -12,7 +12,7 @@ const SIDE = [...TABS.filter((t) => t.href !== "/more"), ...MORE_LINKS];
 const GROUPS: Record<string, string[]> = {
   "/products": ["/products", "/inventory"],
   "/crm": ["/crm", "/customers"],
-  "/more": ["/more", "/accounts", "/close", "/quotes", "/cars", "/b2b", "/suppliers", "/purchase-orders", "/ads", "/settings"],
+  "/more": ["/more", "/accounts", "/close", "/quotes", "/cars", "/agency", "/projects", "/reports", "/b2b", "/suppliers", "/purchase-orders", "/ads", "/settings"],
 };
 
 function isActive(path: string, href: string) {
