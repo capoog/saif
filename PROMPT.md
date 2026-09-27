@@ -158,13 +158,10 @@
 3. النظام يحسب رأس المال ويحفظ **Snapshot** للأسبوع (لا يتعدل بعد الحفظ إلا بصلاحية owner مع سبب).
 4. مقارنة بالهدف وعرض **القرار المقترح** حسب قواعد القسم 5.
 5. خانة لكتابة القرار الفعلي.
-6. تصدير ملخص الأسبوع (PDF أو صورة) — ده هيتصوّر في فلوق "كشف رأس المال".
+6. تصدير ملخص الأسبوع (PDF أو صورة).
 
-### 4.13 حياتي (المرحلة الأخيرة)
-- عادات يومية: تمرين (كورة / سباحة / MMA)، إنجليزي، الكورسين، الدراسة، تسجيل مالي، تصوير الفلوق، عدد التواصلات وعروض الأسعار — ونتيجة يومية من 100.
-- الكورسات بمراحلها ونسبة التقدم.
-- أرشيف الفلوق: رقم اليوم، رأس المال وقتها، اللقطات المصورة، مود اليوم، اسم الملف، موافقة الظهور، حالة المونتاج.
-- (جداول التمرين التفصيلية هضيفها بعدين — سيب الموديول قابل للتوسع.)
+### 4.13 ~~حياتي~~ — ملغي
+> بقرار المالك: النظام للتجارة فقط. لا عادات ولا كورسات ولا أرشيف فلوق.
 
 ### 4.14 التقارير
 - قائمة دخل مبسطة لأي فترة (إيراد، تكلفة بضاعة، مصروفات، صافي) — كلي ولكل محرك.
@@ -214,7 +211,7 @@
 
 ## 7. نموذج البيانات (مبدئي — طوّره واعرضه عليّ)
 
-`User, Role, Setting, Account, Transaction, Engine, Product, InventoryBatch, Supplier, PurchaseOrder, PurchaseOrderItem, Customer, Order, OrderItem, Payment, Quote, QuoteItem, B2BContract, BoxRecipe (BOM), AgencyClient, Subscription, AgencyTask, Freelancer, FreelancerPayment, CarDeal, CarDealCost, AdCampaign, AdSpend, BigProject, ProjectInvoice, WeeklyTarget, WeeklySnapshot, Alert, AuditLog, Habit, Course, VlogEntry`
+`User, Role, Setting, Account, Transaction, Engine, Product, InventoryBatch, Supplier, PurchaseOrder, PurchaseOrderItem, Customer, Order, OrderItem, Payment, Quote, QuoteItem, B2BContract, BoxRecipe (BOM), AgencyClient, Subscription, AgencyTask, Freelancer, FreelancerPayment, CarDeal, CarDealCost, AdCampaign, AdSpend, BigProject, ProjectInvoice, WeeklyTarget, WeeklySnapshot, Alert, AuditLog`
 
 - كل جدول مالي فيه `engineId` عشان التقارير لكل محرك.
 - المبالغ تتخزن كـ Decimal (مش Float).
@@ -243,8 +240,8 @@ CRM والمسار، عروض الأسعار PDF، عقود B2B بالعربون
 **المرحلة 3 — المحركات المتخصصة:**
 الوكالة والمستقلين، السيارات، المشاريع الكبيرة، التقارير والتصدير، أدوار sales و freelancer.
 
-**المرحلة 4 — حياتي والتكاملات:**
-العادات والكورسات وأرشيف الفلوق، تكامل مستقبلي مع سلة/زد (Webhooks للطلبات) ومزوّد الفوترة.
+**المرحلة 4 — التكاملات:**
+تكامل مع سلة/زد (Webhooks للطلبات) ومزوّد الفوترة.
 
 ---
 
