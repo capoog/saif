@@ -18,6 +18,7 @@ jobs:
           --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/saif_test
+      DIRECT_URL: postgresql://postgres:postgres@localhost:5432/saif_test
       DATABASE_URL_TEST: postgresql://postgres:postgres@localhost:5432/saif_test
       SESSION_SECRET: ci-only-session-secret-0123456789
     steps:

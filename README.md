@@ -28,12 +28,24 @@ npm test
 الدخول والتحقق الثنائي، وسيناريو أسبوع كامل بحساب يدوي مكتوب في
 [`tests/scenarios/week-full.test.ts`](./tests/scenarios/week-full.test.ts).
 
-## النشر (Vercel + Neon)
+## النشر (Vercel + Neon) — من الجوال
 
-1. في Vercel: `DATABASE_URL` (رابط Neon **pooled**)، و `SESSION_SECRET` (`openssl rand -base64 32`).
-2. أمر البناء الافتراضي `npm run build` (بيعمل `prisma generate`). طبّق الـ migrations بـ `npx prisma migrate deploy` على رابط Neon المباشر.
-3. شغّل `npm run db:seed` مرة واحدة بـ `OWNER_EMAIL` و `OWNER_PASSWORD` حقيقيين، وبعدها فعّل التحقق الثنائي من الإعدادات.
-4. النسخ الاحتياطي اليومي: `.github/workflows/backup.yml` محتاج secrets `DATABASE_URL_BACKUP` و `BACKUP_PASSPHRASE` (نسخة مشفّرة AES-256 تتحفظ 30 يوم)، بالإضافة لـ point-in-time restore في Neon.
+1. **Neon:** انسخ رابطين من صفحة Connection Details: الـ **pooled** والـ **direct** (من غير `-pooler`).
+2. **Vercel → Add New → Project →** `capoog/saif`، وضيف Environment Variables:
+
+   | المتغير | القيمة |
+   |---|---|
+   | `DATABASE_URL` | رابط Neon الـ pooled |
+   | `DIRECT_URL` | رابط Neon المباشر |
+   | `SESSION_SECRET` | نص عشوائي 32 حرف+ |
+   | `OWNER_EMAIL` | إيميل الدخول |
+   | `OWNER_PASSWORD` | كلمة مرور (8 حروف+) |
+
+3. Deploy. أمر `vercel-build` بيعمل تلقائيًا: إنشاء/تحديث الجداول ← البيانات الأولية ← البناء.
+   البيانات الأولية آمنة مع كل نشر: مش بتكرر حاجة، ومش بتغيّر باسورد المالك لو موجود.
+4. بعد أول دخول: فعّل التحقق الثنائي من الإعدادات.
+
+النسخ الاحتياطي اليومي: `.github/workflows/backup.yml` محتاج GitHub secrets `DATABASE_URL_BACKUP` (الرابط المباشر) و `BACKUP_PASSPHRASE` — نسخة مشفّرة AES-256 تتحفظ 30 يوم، بالإضافة لـ point-in-time restore في Neon.
 
 ## البنية
 

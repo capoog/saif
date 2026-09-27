@@ -9,6 +9,8 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  // Neon: DATABASE_URL = الرابط الـ pooled للتشغيل، DIRECT_URL = الرابط المباشر للـ migrations
+  directUrl = env("DIRECT_URL")
 }
 
 // ───────────────────────── المستخدمين والأمان ─────────────────────────

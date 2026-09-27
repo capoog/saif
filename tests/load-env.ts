@@ -10,4 +10,5 @@ export function loadTestEnv() {
   // حماية: الاختبارات بتمسح القاعدة بالكامل، فلازم اسمها يكون فيه test
   if (!/test/i.test(new URL(url).pathname)) throw new Error("اسم قاعدة الاختبار لازم يحتوي على test");
   process.env.DATABASE_URL = url;
+  process.env.DIRECT_URL = url;
 }
