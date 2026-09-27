@@ -74,9 +74,11 @@ export async function updateProductAction(_prev: ActionState, fd: FormData): Pro
         defaultSellPrice: priceOpt("سعر البيع"),
         estimatedUnitCost: priceOpt("التكلفة التقديرية"),
         notes: z.string().max(1000).optional(),
+        sku: z.string().max(80).optional(),
       })
       .parse(formObject(fd));
     await updateProduct(prisma, actorOf(user), v.id, {
+      sku: v.sku ?? undefined,
       status: v.status,
       kind: v.kind,
       unit: v.unit,
@@ -129,6 +131,7 @@ export async function createProductAction(_prev: ActionState, fd: FormData): Pro
         defaultSellPrice: priceOpt("سعر البيع"),
         estimatedUnitCost: priceOpt("التكلفة التقديرية"),
         unit: z.string().optional(),
+        sku: z.string().max(80).optional(),
       })
       .parse(formObject(fd));
     id = (await createProduct(prisma, actorOf(user), { ...v, defaultSellPrice: v.defaultSellPrice || null, estimatedUnitCost: v.estimatedUnitCost || null })).id;

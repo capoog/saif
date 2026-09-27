@@ -6,7 +6,7 @@ import { TransactionForm } from "./transaction-form";
 
 export default async function NewTransactionPage({ searchParams }: { searchParams: Promise<{ type?: string }> }) {
   const { type } = await searchParams;
-  const [balances, engines] = await Promise.all([accountBalances(prisma), prisma.engine.findMany({ orderBy: { sortOrder: "asc" } })]);
+  const [balances, engines] = await Promise.all([accountBalances(prisma), prisma.engine.findMany({ where: { active: true }, orderBy: { sortOrder: "asc" } })]);
   return (
     <div className="mx-auto max-w-lg">
       <PageHeader title={type === "EXPENSE" ? "مصروف جديد" : "حركة نقدية"} />

@@ -78,11 +78,17 @@ model Setting {
 // ───────────────────────── المحركات ─────────────────────────
 
 model Engine {
-  id        String  @id @default(cuid())
-  code      String  @unique // ECOM | B2B | AGENCY | CARS | SUPPLY
-  name      String
-  sortOrder Int     @default(0)
-  active    Boolean @default(true)
+  id            String   @id @default(cuid())
+  code          String   @unique // ECOM | B2B | AGENCY | CARS | SUPPLY
+  name          String
+  sortOrder     Int      @default(0)
+  active        Boolean  @default(true)
+  // نوع النشاط: STORE | RESTAURANT | CAFE | FOOD_TRUCK | STALL | SERVICES | CORE (الخمسة الأساسية)
+  kind          String   @default("CORE")
+  // أقصى نسبة من رأس المال مسموح يشتغل فيها النشاط (تنبيه) — فاضي = بدون حد
+  maxCapitalPct Decimal? @db.Decimal(5, 2)
+  notes         String?
+  createdAt     DateTime @default(now())
 
   products     Product[]
   journalLines JournalLine[]
@@ -241,6 +247,8 @@ model Product {
   name              String
   category          String
   kind              ProductKind   @default(GOODS)
+  // رمز المنتج في المتجر (سلة/زد) — للربط التلقائي
+  sku               String?       @unique
   engineId          String
   engine            Engine        @relation(fields: [engineId], references: [id])
   status            ProductStatus @default(LATER)
@@ -412,6 +420,11 @@ model Order {
   payments       Payment[]
   journalEntries JournalEntry[]
 
+  // طلب جاي من متجر إلكتروني
+  externalSource String?
+  externalId     String?
+
+  @@unique([externalSource, externalId])
   @@index([date])
   @@index([status])
 }
@@ -923,4 +936,33 @@ model ProjectInvoice {
   createdAt        DateTime      @default(now())
 
   @@unique([projectId, number])
+}
+
+enum ExternalOrderStatus {
+  SYNCED // انسجل في النظام
+  NEEDS_MAPPING // فيه منتج ما عرفناه — يحتاج ربط SKU
+  ERROR // خطأ (مخزون ناقص مثلًا) — يتعاد بعد التصحيح
+  IGNORED
+}
+
+/**
+ * كل طلب وصل من سلة أو زد: آخر نسخة منه وحالة مزامنته
+ */
+model ExternalOrder {
+  id          String              @id @default(cuid())
+  source      String // SALLA | ZID
+  externalId  String
+  reference   String?
+  status      ExternalOrderStatus
+  storeStatus String?
+  orderId     String?
+  payload     Json
+  missingSkus String[]
+  error       String?
+  attempts    Int                 @default(1)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  @@unique([source, externalId])
+  @@index([status])
 }

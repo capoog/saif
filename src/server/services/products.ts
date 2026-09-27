@@ -12,7 +12,10 @@ export interface ProductPatch {
   unit?: string;
   notes?: string | null;
   name?: string;
+  sku?: string | null;
 }
+
+const skuOf = (v?: string | null) => (v == null ? v : v.trim() || null);
 
 export async function updateProduct(db: Db, actor: Actor, id: string, patch: ProductPatch) {
   return db.$transaction(async (tx) => {
@@ -31,6 +34,7 @@ export async function updateProduct(db: Db, actor: Actor, id: string, patch: Pro
         status: patch.status,
         kind: patch.kind,
         name: patch.name?.trim() || undefined,
+        sku: skuOf(patch.sku),
         unit: patch.unit?.trim() || undefined,
         notes: patch.notes === undefined ? undefined : patch.notes || null,
         defaultSellPrice: patch.defaultSellPrice === undefined ? undefined : patch.defaultSellPrice ? toDb2(patch.defaultSellPrice) : null,
@@ -45,7 +49,7 @@ export async function updateProduct(db: Db, actor: Actor, id: string, patch: Pro
 export async function createProduct(
   db: Db,
   actor: Actor,
-  input: { name: string; category: string; engineId: string; kind?: ProductKind; defaultSellPrice?: string | null; estimatedUnitCost?: string | null; unit?: string },
+  input: { name: string; category: string; engineId: string; kind?: ProductKind; defaultSellPrice?: string | null; estimatedUnitCost?: string | null; unit?: string; sku?: string | null },
 ) {
   if (!input.name.trim()) throw new UserError("اكتب اسم المنتج");
   return db.$transaction(async (tx) => {
@@ -54,6 +58,7 @@ export async function createProduct(
         name: input.name.trim(),
         category: input.category.trim() || "أخرى",
         engineId: input.engineId,
+        sku: skuOf(input.sku) ?? null,
         kind: input.kind ?? "GOODS",
         status: "TESTING",
         unit: input.unit?.trim() || (input.kind === "BOX" ? "بوكس" : "قطعة"),

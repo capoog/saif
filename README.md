@@ -3,7 +3,7 @@
 نظام شخصي لخطة 229 يوم (27 سبتمبر 2026 → 13 مايو 2027): من 20,000 إلى 1,000,000 ريال صافي حقوق ملكية.
 المواصفات الكاملة في [`PROMPT.md`](./PROMPT.md). النظام للتجارة فقط.
 
-**الحالة:** المراحل 1 و 2 و 3 مكتملة ومختبرة. الباقي المرحلة 4 (التكاملات).
+**الحالة:** المراحل الأربع مكتملة ومختبرة. ربط سلة/زد جاهز وينتظر المفاتيح.
 
 ## التشغيل محليًا
 
@@ -26,7 +26,7 @@ npm test
 بتشتغل على قاعدة منفصلة (`DATABASE_URL_TEST`، لازم اسمها يحتوي على `test` لأنها بتتمسح بالكامل).
 بتغطي: حساب رأس المال، FIFO، الضريبة، العربون، المرتجعات، الذمم المتأخرة، الزكاة، الإغلاق،
 الدخول والتحقق الثنائي، وسيناريوهات بحساب يدوي مكتوب في
-[`tests/scenarios/week-full.test.ts`](./tests/scenarios/week-full.test.ts) و [`tests/scenarios/phase3.test.ts`](./tests/scenarios/phase3.test.ts).
+[`tests/scenarios/week-full.test.ts`](./tests/scenarios/week-full.test.ts) و [`tests/scenarios/phase3.test.ts`](./tests/scenarios/phase3.test.ts) و [`tests/scenarios/phase4.test.ts`](./tests/scenarios/phase4.test.ts).
 
 ## النشر (Vercel + Neon) — من الجوال
 
@@ -74,6 +74,30 @@ npm test
 `/reports`: قائمة الدخل (حسب المحرك، من الدفتر)، المنتجات من الأفضل للأسوأ، أعمار المخزون، القنوات، الإعلانات، السيارات.
 كل تقرير ينزل CSV، والكل في ملف Excel واحد (ورقة لكل تقرير، من اليمين لليسار).
 
+## الأنشطة (أضف نشاط بدون برمجة)
+
+**المزيد ← الأنشطة ← أضف نشاط جديد**: مطعم، كافيه، فود ترك، بسطة، متجر، خدمات.
+كل نشاط يصير محرك له منتجاته وقيوده وربحه، ويطلع في قائمة الدخل والإغلاق الأسبوعي ولوحة التحكم، ويدخل في رأس المال والهدف.
+- **المطعم/الكافيه**: المواد الخام «منتج / مادة» بمخزون FIFO، والصنف اللي ينباع «صنف بمكونات» بوصفة (مثلًا لاتيه = 18 جم بن + 200 مل حليب). كل بيع يخصم المكونات ويسجّل التكلفة الحقيقية.
+- **بيع سريع** (`/sell`): اضغط الأصناف ← نقد/شبكة/تحويل ← ينسجل طلب مسلّم ومدفوع.
+- **حد رأس المال**: نسبة اختيارية لكل نشاط، وتنبيه لو تعدّاها. **الإيقاف** يخفي النشاط من النماذج الجديدة وبياناته تبقى.
+
+## ربط سلة وزد
+
+الشاشة: **المزيد ← ربط سلة وزد** (فيها الروابط جاهزة للنسخ والخطوات).
+
+| المنصة | الرابط | متغير البيئة في Vercel |
+|---|---|---|
+| سلة | `https://<موقعك>/api/webhooks/salla` (تحقق Signature) | `SALLA_WEBHOOK_SECRET` = المفتاح السري من سلة |
+| زد | `https://<موقعك>/api/webhooks/zid?token=<التوكن>` | `ZID_WEBHOOK_TOKEN` = نص عشوائي تختاره |
+
+- كل طلب ينزل بقناة «سلة / زد»، والحالة تمشي للأمام بس (webhook قديم ما يرجّعها). التسليم يخصم FIFO ويسجل الإيراد.
+- المدفوع أونلاين ينسجل عربون على «مدى / Apple Pay» (أو «تابي / تمارا»)، والدفع عند الاستلام يبقى ذمة. الإلغاء بعد الدفع يسجّل استرداد.
+- نفس الطلب ما يتسجل مرتين (قفل على السجل + مفتاح فريد).
+- المنتج يتربط برمز **SKU** (خانة في صفحة المنتج). رمز ما نعرفه ← «يحتاج ربط» وتربطه من الشاشة بضغطة، والطلب ينعاد لحاله. مخزون ناقص ← «خطأ» وزر «أعد المحاولة».
+- الفاتورة الرسمية: لو المتجر أرسل رقم فاتورته، ينحفظ على الطلب. غير كذا تبقى يدوي (`src/integrations/einvoice` جاهز لأي مزوّد).
+- الأسعار تنقرأ كما دفعها العميل؛ إعداد «الأسعار شاملة الضريبة» يحدد تقسيم الضريبة. إجمالي المتجر يتكتب في ملاحظة الطلب للمقارنة.
+
 ## ملف PDF لعروض الأسعار
 
 بيتولد بـ Chromium headless (`@sparticuz/chromium` على Vercel). محليًا حدد `CHROME_PATH` لو Chrome مش في المسار الافتراضي.
@@ -86,7 +110,7 @@ TRUNCATE "AuditLog", "BatchConsumption", "InventoryBatch", "Payment", "OrderItem
   "Customer", "Transaction", "WeeklySnapshot", "ZakatAccrual", "Setting", "Session", "User", "Product", "WeeklyTarget",
   "LedgerAccount", "Engine", "Supplier", "PurchaseOrder", "PurchaseOrderItem", "RecipeLine", "Deal", "Activity", "Quote",
   "QuoteItem", "B2BContract", "AdCampaign", "AdSpend", "CarDeal", "CarDealCost", "Freelancer", "Subscription",
-  "SubscriptionCharge", "AgencyTask", "BigProject", "ProjectInvoice" RESTART IDENTITY CASCADE;
+  "SubscriptionCharge", "AgencyTask", "BigProject", "ProjectInvoice", "ExternalOrder" RESTART IDENTITY CASCADE;
 ```
 وبعدها Redeploy من Vercel عشان البيانات الأولية ترجع.
 
@@ -97,6 +121,7 @@ src/domain/     منطق نقي بدون قاعدة ولا واجهة (رأس ا
 src/server/     Prisma، دفتر القيود، الخدمات، server actions، الدخول والجلسات
 src/app/        الشاشات (Next.js App Router، RTL، mobile-first)
 src/integrations/einvoice/   واجهة مزوّد الفوترة الإلكترونية (Adapter)
+src/integrations/stores/     سلة وزد: التحقق من الـ webhook وتحويل الطلب لشكل موحّد
 prisma/         schema + migrations + seed
 seed/           products.json + weekly_targets.json
 tests/          unit + integration + scenarios
@@ -136,4 +161,5 @@ tests/          unit + integration + scenarios
 - [x] **1 — النواة**: الدخول والأدوار، الإعدادات، الحسابات والحركات، المنتجات والدفعات (FIFO)، الطلبات، رأس المال، لوحة التحكم، الإغلاق الأسبوعي، البيانات الأولية
 - [x] **2 — البيع والعملاء**: CRM ولوحة الصفقات، عروض الأسعار PDF، عقود B2B بدفعات ومكونات البوكس، عدّاد رمضان، الموردين وأوامر الشراء، الإعلانات (CPA/ROAS)، محرك القواعد باعتراض قبل الحفظ
 - [x] **3 — التوسع**: الوكالة والمستقلين، السيارات (وساطة + شراء وبيع)، المشاريع الكبيرة، التقارير والتصدير Excel/CSV، أدوار المندوب والمستقل
-- [ ] **4**: التكاملات — سلة/زد ومزوّد الفوترة
+- [x] **4 — التكاملات والأنشطة**: Webhooks سلة/زد بربط SKU، إضافة أنشطة جديدة (مطعم، كافيه، فود ترك، بسطة…) بوصفات وبيع سريع
+- [ ] مزوّد الفوترة الرسمي: لما تختاره نكتب Adapter في `src/integrations/einvoice`

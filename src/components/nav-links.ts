@@ -1,6 +1,9 @@
 import {
   ArrowLeftRight,
   Boxes,
+  Store,
+  Calculator,
+  Plug,
   BarChart3,
   Building2,
   Clapperboard,
@@ -30,6 +33,8 @@ export const TABS = [
 ];
 
 export const MORE_LINKS = [
+  { href: "/businesses", label: "الأنشطة (أضف نشاط)", icon: Store },
+  { href: "/sell", label: "بيع سريع (كاشير)", icon: Calculator },
   { href: "/accounts", label: "الحسابات والنقد", icon: Wallet },
   { href: "/close", label: "الإغلاق الأسبوعي", icon: CalendarCheck },
   { href: "/quotes", label: "عروض الأسعار", icon: FileText },
@@ -41,11 +46,13 @@ export const MORE_LINKS = [
   { href: "/suppliers", label: "الموردين وأوامر الشراء", icon: Truck },
   { href: "/ads", label: "الإعلانات", icon: Megaphone },
   { href: "/customers", label: "كل العملاء", icon: Users },
+  { href: "/integrations", label: "ربط سلة وزد", icon: Plug },
   { href: "/settings", label: "الإعدادات", icon: Settings },
 ];
 
 export const QUICK = [
   { href: "/orders/new", label: "طلب جديد", icon: ShoppingBag },
+  { href: "/sell", label: "بيع سريع", icon: Calculator },
   { href: "/crm#log", label: "تواصل +1", icon: PhoneCall },
   { href: "/accounts/new?type=EXPENSE", label: "مصروف", icon: Receipt },
   { href: "/quotes/new", label: "عرض سعر", icon: FileText },

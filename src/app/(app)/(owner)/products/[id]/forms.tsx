@@ -12,7 +12,7 @@ export function Ok({ state }: { state: ActionState }) {
   return state.ok && state.message ? <div className="rounded-xl bg-ok-bg px-3 py-2 text-sm text-ok">{state.message}</div> : null;
 }
 
-export function ProductEditForm(p: { id: string; status: string; kind: string; unit: string; price: string; estimate: string; notes: string }) {
+export function ProductEditForm(p: { id: string; status: string; kind: string; unit: string; price: string; estimate: string; notes: string; sku: string }) {
   const [state, action] = useActionState<ActionState, FormData>(updateProductAction, {});
   return (
     <form action={action} className="space-y-3">
@@ -28,7 +28,7 @@ export function ProductEditForm(p: { id: string; status: string; kind: string; u
         <Field label="النوع">
           <Select name="kind" defaultValue={p.kind}>
             <option value="GOODS">منتج / مادة</option>
-            <option value="BOX">بوكس بمكونات</option>
+            <option value="BOX">صنف بمكونات</option>
           </Select>
         </Field>
       </div>
@@ -45,6 +45,9 @@ export function ProductEditForm(p: { id: string; status: string; kind: string; u
       </div>
       <Field label="ملاحظات">
         <Textarea name="notes" defaultValue={p.notes} />
+      </Field>
+      <Field label="رمز المنتج في المتجر (SKU)" hint="لربط طلبات سلة وزد">
+        <Input name="sku" dir="ltr" defaultValue={p.sku} />
       </Field>
       <FormError state={state} />
       <Ok state={state} />

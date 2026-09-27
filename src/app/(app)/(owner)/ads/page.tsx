@@ -12,7 +12,7 @@ export default async function AdsPage() {
     adsOverview(prisma),
     accountBalances(prisma),
     prisma.product.findMany({ where: { deletedAt: null, status: { notIn: ["AVOID", "LATER"] } }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
-    prisma.engine.findMany({ orderBy: { sortOrder: "asc" } }),
+    prisma.engine.findMany({ where: { active: true }, orderBy: { sortOrder: "asc" } }),
     getSettings(prisma),
   ]);
   const accounts = balances.filter((b) => b.isMoney && !b.isTaxReserve).map((b) => ({ id: b.id, name: b.name, code: b.code }));

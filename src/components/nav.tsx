@@ -12,7 +12,7 @@ const SIDE = [...TABS.filter((t) => t.href !== "/more"), ...MORE_LINKS];
 const GROUPS: Record<string, string[]> = {
   "/products": ["/products", "/inventory"],
   "/crm": ["/crm", "/customers"],
-  "/more": ["/more", "/accounts", "/close", "/quotes", "/cars", "/agency", "/projects", "/reports", "/b2b", "/suppliers", "/purchase-orders", "/ads", "/settings"],
+  "/more": ["/more", "/businesses", "/sell", "/integrations", "/accounts", "/close", "/quotes", "/cars", "/agency", "/projects", "/reports", "/b2b", "/suppliers", "/purchase-orders", "/ads", "/settings"],
 };
 
 function isActive(path: string, href: string) {
@@ -62,8 +62,10 @@ export function SideNav({ role = "owner" }: { role?: RoleName }) {
 /** زر "+ إضافة سريعة" ثابت في كل الشاشات، في متناول الإبهام */
 export function QuickAdd({ role = "owner" }: { role?: RoleName }) {
   const [open, setOpen] = useState(false);
+  const path = usePathname();
   const quick = role === "owner" ? QUICK : SALES_QUICK;
-  if (role === "freelancer") return null;
+  // شاشة البيع السريع لها شريط سفلي خاص
+  if (role === "freelancer" || path.startsWith("/sell")) return null;
   return (
     <div className="no-print">
       {open && <button aria-label="إغلاق" className="fixed inset-0 z-40 bg-black/40" onClick={() => setOpen(false)} />}

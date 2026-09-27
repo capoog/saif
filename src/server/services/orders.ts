@@ -140,7 +140,7 @@ export async function createOrderTx(tx: Tx, actor: Actor, input: CreateOrderInpu
   }
 }
 
-async function paidSoFar(tx: Tx, orderId: string): Promise<Decimal> {
+export async function paidSoFar(tx: Tx, orderId: string): Promise<Decimal> {
   const s = await tx.payment.aggregate({ where: { orderId, deletedAt: null }, _sum: { amount: true } });
   return D(s._sum.amount);
 }
@@ -273,7 +273,7 @@ async function returnTx(tx: Tx, actor: Actor, orderId: string, date: Date) {
   await tx.order.update({ where: { id: orderId }, data: { status: "RETURNED", returnedAt: date } });
 }
 
-async function changeStatusTx(tx: Tx, actor: Actor, orderId: string, to: OrderStatus, date: Date) {
+export async function changeStatusTx(tx: Tx, actor: Actor, orderId: string, to: OrderStatus, date: Date) {
   const order = await tx.order.findUniqueOrThrow({ where: { id: orderId } });
   if (order.deletedAt) throw new UserError("الطلب محذوف");
   if (!NEXT[order.status].includes(to)) throw new UserError(`لا يمكن التحويل من «${order.status}» إلى «${to}»`);

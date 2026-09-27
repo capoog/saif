@@ -14,6 +14,7 @@ import { adsOverview } from "./ads";
 import { ramadanCounter } from "./b2b";
 import { crmToday, overdueFollowUpsCount } from "./crm";
 import { carTitle, carView } from "./cars";
+import { businessOverview } from "./businesses";
 import { clientMargins, dueSubscriptions, monthKeyOf, prevMonthKey } from "./agency";
 
 export type AlertTone = "danger" | "warn" | "info";
@@ -116,6 +117,14 @@ export async function alerts(db: Db, now: Date, settings: Settings, cap: Capital
   }
   const lateTasks = await db.agencyTask.count({ where: { status: { in: ["TODO", "IN_PROGRESS"] }, dueAt: { lt: now } } });
   if (lateTasks > 0) out.push({ tone: "warn", title: `${lateTasks} مهمة وكالة متأخرة`, href: "/agency?tab=tasks" });
+
+  const storePending = await db.externalOrder.count({ where: { status: { in: ["NEEDS_MAPPING", "ERROR"] } } });
+  if (storePending > 0) out.push({ tone: "danger", title: `${storePending} طلب من المتجر ما انسجل`, detail: "منتج يحتاج ربط أو مخزون ناقص.", href: "/integrations" });
+
+  // حد رأس المال لكل نشاط
+  for (const b of (await businessOverview(db, cap.capital, now)).filter((b) => b.active && b.overLimit)) {
+    out.push({ tone: "warn", title: `${b.name} فوق حده من رأس المال`, detail: `يستخدم ${b.capitalPct!.toFixed(0)}% والحد ${b.maxCapitalPct!.toFixed(0)}%.`, href: `/businesses/${b.id}` });
+  }
 
   // المشاريع الكبيرة
   const projects = await db.bigProject.findMany({ where: { status: { in: ["BIDDING", "ACTIVE"] } }, select: { id: true, name: true, value: true, advancePct: true } });

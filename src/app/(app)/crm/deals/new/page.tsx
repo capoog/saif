@@ -9,7 +9,7 @@ export default async function NewDealPage({ searchParams }: { searchParams: Prom
   const user = await requireUser(["owner", "sales"]);
   const [customers, engines] = await Promise.all([
     prisma.customer.findMany({ where: { deletedAt: null, ...customerScope(user) }, orderBy: { createdAt: "desc" }, take: 500, select: { id: true, name: true, phone: true } }),
-    prisma.engine.findMany({ orderBy: { sortOrder: "asc" } }),
+    prisma.engine.findMany({ where: { active: true }, orderBy: { sortOrder: "asc" } }),
   ]);
   return (
     <div className="mx-auto max-w-lg">

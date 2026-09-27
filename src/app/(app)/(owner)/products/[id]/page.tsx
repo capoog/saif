@@ -143,6 +143,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
             price={product.defaultSellPrice?.toString() ?? ""}
             estimate={product.estimatedUnitCost?.toString() ?? ""}
             notes={product.notes ?? ""}
+            sku={product.sku ?? ""}
           />
         </Card>
         {!isBox && (
