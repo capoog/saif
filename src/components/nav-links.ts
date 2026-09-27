@@ -1,6 +1,7 @@
 import {
   ArrowLeftRight,
   Boxes,
+  Car,
   CalendarCheck,
   FileText,
   Gift,
@@ -29,6 +30,7 @@ export const MORE_LINKS = [
   { href: "/accounts", label: "الحسابات والنقد", icon: Wallet },
   { href: "/close", label: "الإغلاق الأسبوعي", icon: CalendarCheck },
   { href: "/quotes", label: "عروض الأسعار", icon: FileText },
+  { href: "/cars", label: "السيارات", icon: Car },
   { href: "/b2b", label: "عقود B2B ورمضان", icon: Gift },
   { href: "/suppliers", label: "الموردين وأوامر الشراء", icon: Truck },
   { href: "/ads", label: "الإعلانات", icon: Megaphone },

@@ -41,6 +41,12 @@ export const DEFAULT_SETTINGS = {
   surplusToTopEnginePct: 70,
   onTargetAdBoostPct: 20,
 
+  // السيارات
+  carMaxMarketPct: 85, // سعر الشراء لا يتعدى هذي النسبة من متوسط السوق
+  carMarkdownDay: 14, // خفّض لنقطة التعادل
+  carSellNowDay: 21, // بع فورًا بخسارة لا تتعدى carMaxLossPct
+  carMaxLossPct: 5,
+
   // B2B وعروض الأسعار
   b2bDepositPct: 50,
   quoteValidityDays: 7,

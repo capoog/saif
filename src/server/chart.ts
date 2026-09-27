@@ -17,6 +17,7 @@ export const CHART: ChartAccount[] = [
   { code: "WALLET_CARDS", name: "مدى / Apple Pay (تسويات)", type: "ASSET", kind: "WALLET", isMoney: true },
   { code: "WALLET_BNPL", name: "تابي / تمارا (مستحقات)", type: "ASSET", kind: "WALLET", isMoney: true },
   { code: "INVENTORY", name: "المخزون", type: "ASSET", kind: "INVENTORY" },
+  { code: "CAR_STOCK", name: "سيارات للبيع (بالتكلفة)", type: "ASSET", kind: "INVENTORY" },
   { code: "CUSTOMERS", name: "العملاء (ذمم وعرابين)", type: "ASSET", kind: "CUSTOMER" },
   { code: "SUPPLIERS", name: "مستحقات الموردين", type: "LIABILITY", kind: "SUPPLIER_PAYABLE" },
   { code: "FREELANCERS", name: "مستحقات المستقلين", type: "LIABILITY", kind: "FREELANCER_PAYABLE" },

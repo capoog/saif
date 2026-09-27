@@ -40,3 +40,11 @@ export const ORDER_STATUS_TONE: Record<string, "ok" | "info" | "warn" | "danger"
   RETURNED: "danger",
   CANCELLED: "danger",
 };
+
+export const CAR_STATUS: Record<string, string> = {
+  EVALUATING: "تحت الدراسة",
+  LISTED: "معروضة (وساطة)",
+  OWNED: "ملكي — للبيع",
+  SOLD: "انباعت",
+  CANCELLED: "ملغية",
+};

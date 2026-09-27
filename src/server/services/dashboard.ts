@@ -13,6 +13,7 @@ import { getSettings } from "./settings";
 import { adsOverview } from "./ads";
 import { ramadanCounter } from "./b2b";
 import { crmToday, overdueFollowUpsCount } from "./crm";
+import { carTitle, carView } from "./cars";
 
 export type AlertTone = "danger" | "warn" | "info";
 export interface DashAlert {
@@ -46,6 +47,8 @@ export async function alerts(db: Db, now: Date, settings: Settings, cap: Capital
     }),
   ]);
   const dealProfits = recent.map((o) => ({ n: o.number, p: D(o.netRevenue).minus(sum(o.items.map((i) => i.cogs ?? 0))) }));
+  const soldCars = await db.carDeal.findMany({ where: { status: "SOLD", type: "PURCHASE", soldAt: { gte: new Date(now.getTime() - 30 * 86400000) } }, include: { costs: true } });
+  for (const c of soldCars) dealProfits.push({ n: c.number, p: carView(c, settings, now).profit ?? D(0) });
   const worst = dealProfits.sort((a, b) => a.p.comparedTo(b.p))[0] ?? null;
   const monthProfit = sum(monthRows.map((l) => D(l.credit).minus(D(l.debit))));
   for (const msg of lossSignals(cap.capital, worst?.p ?? null, monthProfit, settings)) out.push({ tone: "danger", title: "خسارة كبيرة", detail: msg });
@@ -65,6 +68,14 @@ export async function alerts(db: Db, now: Date, settings: Settings, cap: Capital
     if (sig === "MARKDOWN") out.push({ tone: "warn", title: `خفّض السعر: ${b.productName}`, detail: `دفعة عمرها ${b.ageDays} يوم وباقي منها ${b.remaining.toString()}.`, href });
     if (sig === "SLOW") out.push({ tone: "warn", title: `أوقف أو خفّض: ${b.productName}`, detail: `انباع ${b.sellThroughWindowPct}% بس في أول ${settings.batchWindowDays} يوم.`, href });
     if (sig === "DOUBLE") out.push({ tone: "info", title: `ضاعف ×2: ${b.productName}`, detail: `انباع ${b.sellThroughWindowPct}% في ${settings.batchWindowDays} يوم، و ROAS ${a!.perf.roas!.toFixed(1)} على ${a!.perf.orders} طلب.`, href });
+  }
+
+  // السيارات: يوم 14 خفّض لنقطة التعادل، يوم 21 بع فورًا
+  const owned = await db.carDeal.findMany({ where: { status: "OWNED" }, include: { costs: true } });
+  for (const c of owned) {
+    const v = carView(c, settings, now);
+    if (v.signal?.level === "SELL_NOW") out.push({ tone: "danger", title: `بع فورًا: ${carTitle(c)}`, detail: `لها ${v.holdingDays} يوم عندك. أقل سعر مقبول ${v.signal.minPrice.toFixed(2)} (خسارة ≤ ${settings.carMaxLossPct}%).`, href: `/cars/${c.id}` });
+    else if (v.signal?.level === "MARKDOWN") out.push({ tone: "warn", title: `خفّض لنقطة التعادل: ${carTitle(c)}`, detail: `لها ${v.holdingDays} يوم عندك. التكلفة ${v.signal.minPrice.toFixed(2)}.`, href: `/cars/${c.id}` });
   }
 
   // الإعلانات: أوقف المنتج

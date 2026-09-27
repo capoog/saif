@@ -39,11 +39,19 @@ export interface QuoteDoc {
   total: unknown;
   depositPct: unknown;
   terms?: string | null;
+  /** عرض سعر سيارة: جدول المواصفات */
+  car?: { title: string; rows: [string, string][] } | null;
 }
 
 export function renderQuoteHtml(q: QuoteDoc): string {
   const vatRate = Number(D(q.vatRatePct as string));
   const deposit = D(q.total as string).times(D(q.depositPct as string)).div(100);
+  const hasDeposit = deposit.gt(0);
+  const carBlock = q.car
+    ? `<div class="car"><div class="car-title">${esc(q.car.title)}</div><table>${q.car.rows
+        .map(([k, v]) => `<tr><td class="muted">${esc(k)}</td><td>${esc(v)}</td></tr>`)
+        .join("")}</table></div>`
+    : "";
   const rows = q.items
     .map(
       (it, i) => `<tr><td class="n">${i + 1}</td><td>${esc(it.description)}</td><td class="n">${it.quantity}</td><td class="n">${money(it.unitPrice)}</td><td class="n">${money(it.lineTotal)}</td></tr>`,
@@ -76,6 +84,11 @@ table.items tr:nth-child(even) td{background:#f8fafc}
 .totals .grand td{font-size:15px;font-weight:700;border-top:2px solid #0f172a}
 .totals .dep td{color:#0f766e;font-weight:700}
 .terms{margin-top:22px;font-size:11.5px;line-height:1.9}
+.car{border:2px solid #0f766e;border-radius:12px;padding:12px 14px;margin:0 0 14px}
+.car-title{font-size:17px;font-weight:700;color:#0f766e;margin-bottom:6px}
+.car table{width:100%;border-collapse:collapse}
+.car td{padding:5px 0;border-bottom:1px solid #e2e8f0;font-size:12.5px}
+.car td.muted{width:34%}
 footer{margin-top:28px;display:flex;justify-content:space-between;font-size:11px;color:#64748b}
 .sign{border-top:1px solid #94a3b8;width:180px;padding-top:6px;text-align:center}
 </style></head><body>
@@ -91,8 +104,9 @@ footer{margin-top:28px;display:flex;justify-content:space-between;font-size:11px
 </header>
 <div class="cards">
   <div class="card"><b>مقدَّم إلى</b>${esc(q.customer.name)}${q.customer.contact ? `<br>${esc(q.customer.contact)}` : ""}${q.customer.phone ? `<br><span class="n">${esc(q.customer.phone)}</span>` : ""}${q.customer.city ? `<br>${esc(q.customer.city)}` : ""}</div>
-  <div class="card"><b>الدفع</b>عربون <span class="n">${esc(D(q.depositPct as string).toString())}%</span> عند التوقيع (<span class="n">${money(deposit)}</span> ريال)، والباقي عند التسليم.</div>
+  ${hasDeposit ? `<div class="card"><b>الدفع</b>عربون <span class="n">${esc(D(q.depositPct as string).toString())}%</span> عند التوقيع (<span class="n">${money(deposit)}</span> ريال)، والباقي عند التسليم.</div>` : ""}
 </div>
+${carBlock}
 <table class="items"><thead><tr><th class="n">#</th><th>البيان</th><th class="n">الكمية</th><th class="n">سعر الوحدة</th><th class="n">الإجمالي</th></tr></thead><tbody>${rows}</tbody></table>
 <table class="totals">
 ${line("المجموع", q.subtotal)}
@@ -100,7 +114,7 @@ ${D(q.discount as string).gt(0) ? line("الخصم", D(q.discount as string).neg
 ${D(q.shippingFee as string).gt(0) ? line("الشحن والتوصيل", q.shippingFee) : ""}
 ${vatRate > 0 ? line(`ضريبة القيمة المضافة <span class="n">${vatRate}%</span>${q.pricesIncludeVat ? " (شاملة)" : ""}`, q.vatAmount) : ""}
 ${line("الإجمالي (ريال سعودي)", q.total, "grand")}
-${line(`العربون <span class="n">${D(q.depositPct as string).toString()}%</span>`, deposit, "dep")}
+${hasDeposit ? line(`العربون <span class="n">${D(q.depositPct as string).toString()}%</span>`, deposit, "dep") : ""}
 </table>
 ${q.terms ? `<div class="terms"><b>الشروط والملاحظات</b><br>${esc(q.terms).replace(/\n/g, "<br>")}</div>` : ""}
 <div class="terms muted">${vatRate > 0 ? "الأسعار بالريال السعودي. الفاتورة الضريبية تصدر عند التسليم." : "الأسعار بالريال السعودي."} هذا العرض ليس فاتورة ضريبية.</div>

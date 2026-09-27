@@ -337,6 +337,7 @@ model Customer {
   quotes     Quote[]
   activities Activity[]
   contracts  B2BContract[]
+  carsBought CarDeal[]
 
   @@index([phone])
 }
@@ -612,8 +613,11 @@ model Quote {
   createdAt        DateTime    @default(now())
   updatedAt        DateTime    @updatedAt
 
-  items    QuoteItem[]
-  contract B2BContract?
+  items     QuoteItem[]
+  contract  B2BContract?
+  // عرض سعر لسيارة (المواصفات بتطلع في الـ PDF)
+  carDealId String?
+  carDeal   CarDeal?     @relation(fields: [carDealId], references: [id])
 }
 
 model QuoteItem {
@@ -682,4 +686,73 @@ model AdSpend {
   deletedAt     DateTime?
 
   @@index([date])
+}
+
+// ───────────────────────── السيارات ─────────────────────────
+
+enum CarDealType {
+  BROKERAGE // وساطة: السيارة لشخص ثاني وأنا آخذ عمولة
+  PURCHASE // شراء وبيع: السيارة ملكي
+}
+
+enum CarDealStatus {
+  EVALUATING // تحت الدراسة (شراء وبيع قبل الشراء)
+  LISTED // معروضة (وساطة)
+  OWNED // اشتريتها ومعروضة للبيع
+  SOLD
+  CANCELLED
+}
+
+model CarDeal {
+  id              String        @id @default(cuid())
+  number          Int           @unique @default(autoincrement())
+  type            CarDealType
+  status          CarDealStatus
+  make            String // الشركة والموديل: تويوتا كامري
+  year            Int
+  mileage         Int?
+  color           String?
+  specs           String? // الفئة والمواصفات
+  vin             String?
+  source          String? // حراج، معرض، مالك مباشر…
+  ownerName       String? // صاحب السيارة (وساطة)
+  ownerPhone      String?
+  // أسعار إعلانات مشابهة (حتى 10) ومتوسطها
+  marketPrices    Json          @default("[]")
+  marketAvg       Decimal?      @db.Decimal(14, 2)
+  askingPrice     Decimal?      @db.Decimal(14, 2)
+  // وساطة: عمولة ثابتة أو نسبة من سعر البيع
+  commissionType  String? // FIXED | PERCENT
+  commissionValue Decimal?      @db.Decimal(14, 2)
+  // شراء: قائمة الفحص قبل الشراء
+  checklist       Json          @default("{}")
+  purchasePrice   Decimal?      @db.Decimal(14, 2)
+  purchasedAt     DateTime?
+  salePrice       Decimal?      @db.Decimal(14, 2)
+  soldAt          DateTime?
+  buyerId         String?
+  buyer           Customer?     @relation(fields: [buyerId], references: [id])
+  commission      Decimal?      @db.Decimal(14, 2)
+  notes           String?
+  createdById     String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  costs  CarDealCost[]
+  quotes Quote[]
+
+  @@index([status])
+}
+
+// تكاليف التجهيز (فحص، تلميع، إصلاح…) — بتدخل في تكلفة السيارة
+model CarDealCost {
+  id             String   @id @default(cuid())
+  carDealId      String
+  carDeal        CarDeal  @relation(fields: [carDealId], references: [id])
+  date           DateTime
+  description    String
+  amount         Decimal  @db.Decimal(14, 2)
+  accountId      String
+  journalEntryId String?  @unique
+  createdAt      DateTime @default(now())
 }

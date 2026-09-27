@@ -15,7 +15,7 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
   const st = effectiveQuoteStatus(q);
   const label = quoteNumberLabel(q);
   const deposit = (Number(q.total) * Number(q.depositPct)) / 100;
-  const canConvert = !q.contract && st !== "REJECTED" && q.items.every((i) => i.productId);
+  const canConvert = !q.carDealId && !q.contract && st !== "REJECTED" && q.items.every((i) => i.productId);
 
   return (
     <div className="mx-auto max-w-2xl space-y-4">
@@ -61,6 +61,10 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
           <CardTitle>العميل وافق؟ حوّله لعقد</CardTitle>
           <ContractForm quoteId={q.id} items={q.items.map((i) => ({ description: i.description, quantity: i.quantity }))} />
         </Card>
+      ) : q.carDealId ? (
+        <Alert tone="info" title="عرض سعر سيارة">
+          لما تنباع، سجّل البيع من <Link href={`/cars/${q.carDealId}`} className="underline">صفحة السيارة</Link>.
+        </Alert>
       ) : (
         st !== "REJECTED" && <Alert tone="info">عشان يتحول لعقد، كل البنود لازم تكون منتجات من المخزون (مو بنود حرة).</Alert>
       )}

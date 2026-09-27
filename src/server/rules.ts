@@ -26,9 +26,11 @@ export async function enforceRules(
   op: ProposedOperation,
   override: Override,
   context: { entity: string; entityId?: string | null },
+  /** مخالفات إضافية خاصة بالعملية (مثلًا قائمة فحص السيارة) */
+  extra: Violation[] = [],
 ): Promise<Violation[]> {
   const [cap, settings] = await Promise.all([getCapital(tx), getSettings(tx)]);
-  const violations = checkOperation(op, cap, settings);
+  const violations = [...checkOperation(op, cap, settings), ...extra];
   if (violations.length === 0) return [];
   const reason = override?.trim();
   if (!reason) throw new RuleViolationError(violations);

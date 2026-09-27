@@ -84,3 +84,14 @@ describe("إشارات التنبيه", () => {
     expect(lossSignals(20000, 50, 100, S)).toEqual([]);
   });
 });
+
+describe("قواعد السيارات", () => {
+  it("متوسط السوق والعمولة", async () => {
+    const { marketAverage, brokerageCommission, checkCarPurchase } = await import("@/domain/rules");
+    expect(marketAverage(["100", "", "0", "200"])!.toFixed(2)).toBe("150.00");
+    expect(marketAverage([])).toBeNull();
+    expect(brokerageCommission("PERCENT", "2.5", "40000").toFixed(2)).toBe("1000.00");
+    expect(brokerageCommission("FIXED", "1500", "40000").toFixed(2)).toBe("1500.00");
+    expect(checkCarPurchase({}, 1, null, S).map((v) => v.code)).toEqual(["CAR_CHECKLIST", "CAR_OVERPRICED"]);
+  });
+});

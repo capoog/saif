@@ -27,7 +27,7 @@ export interface ProposedOperation {
 }
 
 export interface Violation {
-  code: "EMERGENCY" | "DEAL_SIZE" | "CAR_MIN_CAPITAL" | "LIQUIDITY" | "INVENTORY_CAP";
+  code: "EMERGENCY" | "DEAL_SIZE" | "CAR_MIN_CAPITAL" | "LIQUIDITY" | "INVENTORY_CAP" | "CAR_CHECKLIST" | "CAR_OVERPRICED";
   title: string;
   detail: string;
 }
@@ -207,4 +207,68 @@ export function lossSignals(
     out.push(`الشهر هذا خسران ${D(monthProfit).neg().toFixed(2)} (أكثر من ${s.monthLossRedPct}% من رأس المال)`);
   }
   return out;
+}
+
+// ─────────────── السيارات (القسم 4.9) ───────────────
+
+export const CAR_CHECKLIST = [
+  { key: "inspection", label: "فحص ورشة مستقلة" },
+  { key: "vinReport", label: "تقرير رقم الهيكل" },
+  { key: "noLiens", label: "خالية من الرهن والمخالفات" },
+  { key: "testDrive", label: "اختبار قيادة" },
+] as const;
+export type CarChecklist = Partial<Record<(typeof CAR_CHECKLIST)[number]["key"], boolean>>;
+
+/** متوسط أسعار الإعلانات المشابهة (يتجاهل الفاضي والصفر) */
+export function marketAverage(prices: DecimalLike[]): Decimal | null {
+  const valid = prices
+    .map((p) => String(p ?? "").replace(/,/g, "").trim())
+    .filter((p) => /^\d+(\.\d+)?$/.test(p))
+    .map((p) => D(p))
+    .filter((p) => p.gt(0));
+  if (valid.length === 0) return null;
+  return round2(valid.reduce((a, b) => a.plus(b), D(0)).div(valid.length));
+}
+
+/** قبل شراء سيارة: قائمة الفحص كاملة، والسعر ما يتعدى carMaxMarketPct% من متوسط السوق */
+export function checkCarPurchase(
+  checklist: CarChecklist,
+  price: DecimalLike,
+  marketAvg: DecimalLike | null,
+  s: Pick<Settings, "carMaxMarketPct">,
+): Violation[] {
+  const v: Violation[] = [];
+  const missing = CAR_CHECKLIST.filter((c) => !checklist[c.key]).map((c) => c.label);
+  if (missing.length) v.push({ code: "CAR_CHECKLIST", title: "قائمة الفحص ناقصة", detail: `باقي: ${missing.join("، ")}.` });
+  if (marketAvg === null || D(marketAvg).lte(0)) {
+    v.push({ code: "CAR_OVERPRICED", title: "ما فيه متوسط سعر سوق", detail: "اكتب أسعار إعلانات مشابهة (حتى 10) قبل الشراء." });
+  } else {
+    const limit = pctOf(D(marketAvg), s.carMaxMarketPct);
+    if (D(price).gt(limit)) {
+      v.push({
+        code: "CAR_OVERPRICED",
+        title: `سعر الشراء أعلى من ${s.carMaxMarketPct}% من متوسط السوق`,
+        detail: `السعر ${f(D(price))} والحد ${f(limit)} (متوسط السوق ${f(D(marketAvg))}).`,
+      });
+    }
+  }
+  return v;
+}
+
+/** أيام الاحتفاظ: يوم 14 خفّض لنقطة التعادل، يوم 21 بع فورًا بخسارة ≤ 5% */
+export function carHoldingSignal(
+  ageDays: number,
+  cost: DecimalLike,
+  s: Pick<Settings, "carMarkdownDay" | "carSellNowDay" | "carMaxLossPct">,
+): { level: "SELL_NOW" | "MARKDOWN" | null; minPrice: Decimal } {
+  const c = D(cost);
+  if (ageDays >= s.carSellNowDay) return { level: "SELL_NOW", minPrice: round2(c.times(100 - s.carMaxLossPct).div(100)) };
+  if (ageDays >= s.carMarkdownDay) return { level: "MARKDOWN", minPrice: round2(c) };
+  return { level: null, minPrice: round2(c) };
+}
+
+/** عمولة الوساطة: مبلغ ثابت أو نسبة من سعر البيع */
+export function brokerageCommission(type: string | null | undefined, value: DecimalLike | null | undefined, salePrice: DecimalLike): Decimal {
+  if (value === null || value === undefined) return D(0);
+  return type === "PERCENT" ? round2(D(salePrice).times(D(value)).div(100)) : round2(D(value));
 }

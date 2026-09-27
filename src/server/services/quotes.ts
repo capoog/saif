@@ -27,6 +27,7 @@ export interface QuoteInput {
   depositPct?: number;
   terms?: string | null;
   note?: string | null;
+  carDealId?: string | null;
 }
 
 export const QUOTE_STATUS_LABEL: Record<QuoteStatus, string> = {
@@ -72,6 +73,7 @@ export async function createQuote(db: Db, actor: Actor, input: QuoteInput) {
       data: {
         customerId: input.customerId,
         dealId: input.dealId ?? null,
+        carDealId: input.carDealId ?? null,
         date: input.date,
         validUntil: new Date(input.date.getTime() + validityDays * 86400000),
         discount: toDb2(totals.discount),
