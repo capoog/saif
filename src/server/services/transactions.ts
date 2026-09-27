@@ -6,6 +6,7 @@ import { audit, type Actor } from "../audit";
 import { UserError } from "../errors";
 import { postEntry, reverseEntry } from "../ledger";
 import { accountBalance } from "./balances";
+import { enforceRules, type Override } from "../rules";
 
 export interface TransactionInput {
   type: TransactionType;
@@ -18,6 +19,12 @@ export interface TransactionInput {
   note?: string | null;
   refType?: string | null;
   refId?: string | null;
+  /** سداد مورد: المورد اللي بتسدد له (دفتر فرعي) */
+  supplierId?: string | null;
+  /** سبب تجاوز قواعد المخاطر */
+  override?: Override;
+  /** داخلي فقط: العملية الأم فحصت القواعد بالفعل (زي استلام أمر شراء) */
+  skipRules?: boolean;
 }
 
 async function moneyAccount(tx: Tx, id: string) {
@@ -33,10 +40,13 @@ export async function assertSufficient(tx: Tx, accountId: string, amount: Return
 }
 
 export async function createTransaction(db: Db, actor: Actor, input: TransactionInput) {
+  return db.$transaction((tx) => createTransactionTx(tx, actor, input));
+}
+
+export async function createTransactionTx(tx: Tx, actor: Actor, input: TransactionInput) {
   const amount = D(input.amount);
   if (!amount.isFinite() || amount.lte(0)) throw new UserError("المبلغ لازم يكون أكبر من صفر");
-
-  return db.$transaction(async (tx) => {
+  {
     const acct = await moneyAccount(tx, input.accountId);
     let lines;
     let description: string;
@@ -55,8 +65,24 @@ export async function createTransaction(db: Db, actor: Actor, input: Transaction
         const p = WITHDRAWAL_PURPOSES.find((s) => s.code === input.category);
         if (!p) throw new UserError("اختار غرض السحب");
         await assertSufficient(tx, acct.id, amount, acct.name);
+        let supplierId: string | null = null;
+        if (p.code === "SUPPLIER_PAYMENT" && input.supplierId) {
+          const sup = await tx.supplier.findUnique({ where: { id: input.supplierId } });
+          if (!sup) throw new UserError("المورد غير موجود");
+          supplierId = sup.id;
+        }
+        // المسحوبات الشخصية بتقلل رأس المال، والسداد بيقلل النقد والالتزام بنفس القيمة
+        if (!input.skipRules) {
+          await enforceRules(
+            tx,
+            actor,
+            { kind: "CASH_OUT", amount, cashOut: amount, capitalChange: p.code === "OWNER_DRAW" ? amount.neg() : 0 },
+            input.override,
+            { entity: "Transaction" },
+          );
+        }
         lines = [
-          { accountCode: p.account, debit: amount },
+          { accountCode: p.account, debit: amount, supplierId },
           { accountCode: acct.code, credit: amount },
         ];
         description = `سحب: ${p.label}`;
@@ -77,6 +103,9 @@ export async function createTransaction(db: Db, actor: Actor, input: Transaction
         const cat = EXPENSE_CATEGORIES.find((c) => c.code === input.category);
         if (!cat) throw new UserError("اختار تصنيف المصروف");
         await assertSufficient(tx, acct.id, amount, acct.name);
+        if (!input.skipRules) {
+          await enforceRules(tx, actor, { kind: "CASH_OUT", amount, cashOut: amount, capitalChange: amount.neg() }, input.override, { entity: "Transaction" });
+        }
         lines = [
           { accountCode: cat.code, debit: amount, engineId: input.engineId },
           { accountCode: acct.code, credit: amount },
@@ -97,8 +126,8 @@ export async function createTransaction(db: Db, actor: Actor, input: Transaction
         category: input.category ?? null,
         engineId: input.engineId ?? null,
         note: input.note ?? null,
-        refType: input.refType ?? null,
-        refId: input.refId ?? null,
+        refType: input.refType ?? (input.supplierId ? "SUPPLIER" : null),
+        refId: input.refId ?? input.supplierId ?? null,
         createdById: actor.userId,
       },
     });
@@ -113,7 +142,7 @@ export async function createTransaction(db: Db, actor: Actor, input: Transaction
     const saved = await tx.transaction.update({ where: { id: trx.id }, data: { journalEntryId: entry.id } });
     await audit(tx, actor, "create", "Transaction", trx.id, { after: saved });
     return saved;
-  });
+  }
 }
 
 /** حذف ناعم: قيد عكسي + تعليم الحركة كمحذوفة */

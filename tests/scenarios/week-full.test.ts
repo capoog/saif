@@ -97,7 +97,7 @@ describe("سيناريو أسبوع كامل", () => {
   it("المخزون الفعلي = قيمة المخزون في الدفتر", async () => {
     const freshener = await product(15);
     const level = (await stockLevels(db)).get(freshener.id)!;
-    expect(level.onHand).toBe(20);
+    expect(level.onHand.toNumber()).toBe(20);
     expect(level.value.toFixed(2)).toBe("120.00");
   });
 

@@ -31,7 +31,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
       />
 
       <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-        <Stat label="في المخزون" value={level?.onHand ?? 0} sub={level?.reserved ? `محجوز ${level.reserved}` : undefined} />
+        <Stat label={`في المخزون (${product.unit})`} value={level?.onHand.toString() ?? "0"} sub={level?.reserved.gt(0) ? `محجوز ${level.reserved.toString()}` : undefined} />
         <Stat label="قيمة المخزون" value={money(level?.value ?? 0)} />
         <Stat label="الكمية المباعة" value={metrics.qtySold} sub={<>سرعة البيع <span className="num">{metrics.velocityPerDay}</span>/يوم (آخر 14 يوم)</>} />
         <Stat label="الهامش الفعلي" value={metrics.marginPct ? `${metrics.marginPct.toFixed(1)}%` : "—"} sub={<>ربح إجمالي <span className="num">{money(metrics.grossProfit)}</span></>} tone={metrics.marginPct?.lt(30) ? "warn" : undefined} />
@@ -60,11 +60,11 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
                 {batches.map((b) => (
                   <tr key={b.id}>
                     <td className="py-2">{date(b.receivedAt)}</td>
-                    <td className="num">{b.quantity}</td>
-                    <td className="num font-semibold">{b.remaining}</td>
+                    <td className="num">{b.quantity.toString()}</td>
+                    <td className="num font-semibold">{b.remaining.toString()}</td>
                     <td><Money value={b.unitCost.toFixed(2)} /></td>
                     <td className="num">
-                      {b.remaining > 0 ? (
+                      {b.remaining.gt(0) ? (
                         <Badge tone={b.ageDays >= settings.inventoryAgeLiquidateDays ? "danger" : b.ageDays >= settings.inventoryAgeMarkdownDays ? "warn" : "neutral"}>{b.ageDays} يوم</Badge>
                       ) : (
                         "—"
@@ -93,7 +93,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
         </Card>
         <Card>
           <CardTitle>جرد سريع</CardTitle>
-          <StockCountForm productId={id} onHand={level?.onHand ?? 0} />
+          <StockCountForm productId={id} onHand={level?.onHand.toString() ?? "0"} />
         </Card>
       </div>
 

@@ -41,8 +41,21 @@ export const DEFAULT_SETTINGS = {
   surplusToTopEnginePct: 70,
   onTargetAdBoostPct: 20,
 
-  // B2B
+  // B2B وعروض الأسعار
   b2bDepositPct: 50,
+  quoteValidityDays: 7,
+  ramadanContractsTarget: 20,
+  ramadanDeadline: "2027-01-24",
+
+  // CRM — عدّادات اليوم
+  dailyOutreachMin: 30,
+  dailyOutreachMax: 50,
+  dailyQuotesMin: 3,
+  dailyQuotesMax: 8,
+
+  // الإعلانات: بعد إنفاق X على منتج، لو تكلفة الطلب > Y% من الربح الإجمالي للطلب → أوقف
+  adStopMinSpend: 1000,
+  adStopCpaMarginPct: 40,
 
   // بيانات المنشأة (لعروض الأسعار لاحقًا)
   businessName: "",

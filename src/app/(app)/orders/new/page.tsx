@@ -1,6 +1,6 @@
 import { prisma } from "@/server/db";
 import { accountBalances } from "@/server/services/balances";
-import { stockLevels } from "@/server/services/inventory";
+import { boxesAvailable, stockLevels } from "@/server/services/inventory";
 import { getSettings } from "@/server/services/settings";
 import { CHANNELS, PAYMENT_METHODS } from "@/server/chart";
 import { OrderForm } from "./order-form";
@@ -9,14 +9,19 @@ export const dynamic = "force-dynamic";
 
 export default async function NewOrderPage() {
   const [products, levels, balances, settings] = await Promise.all([
-    prisma.product.findMany({ where: { deletedAt: null, status: { notIn: ["AVOID"] } }, orderBy: [{ name: "asc" }] }),
+    prisma.product.findMany({ where: { deletedAt: null, status: { notIn: ["AVOID"] } }, orderBy: [{ name: "asc" }], include: { recipe: true } }),
     stockLevels(prisma),
     accountBalances(prisma),
     getSettings(prisma),
   ]);
   // المنتجات اللي في المخزون الأول
   const list = products
-    .map((p) => ({ id: p.id, name: p.name, price: p.defaultSellPrice?.toString() ?? "", available: levels.get(p.id)?.available ?? 0 }))
+    .map((p) => ({
+      id: p.id,
+      name: p.name,
+      price: p.defaultSellPrice?.toString() ?? "",
+      available: p.kind === "BOX" ? boxesAvailable(levels, p.recipe) : Math.floor(Number(levels.get(p.id)?.available ?? 0)),
+    }))
     .sort((a, b) => Number(b.available > 0) - Number(a.available > 0));
   const byCode = new Map(balances.map((b) => [b.code, b.id]));
   return (

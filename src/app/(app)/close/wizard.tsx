@@ -11,7 +11,7 @@ interface Props {
   week: number;
   existing: { week: number } | null;
   accounts: { id: string; name: string; balance: string }[];
-  products: { id: string; name: string; onHand: number }[];
+  products: { id: string; name: string; onHand: string }[];
   draft: {
     capital: string;
     target: string;
@@ -81,7 +81,7 @@ export function CloseWizard({ week, existing, accounts, products, draft }: Props
               {products.map((p) => (
                 <div key={p.id} className="flex items-center justify-between gap-3">
                   <span className="text-sm">{p.name}</span>
-                  <Input name={`count_${p.id}`} inputMode="numeric" defaultValue={p.onHand} className="num w-24" />
+                  <Input name={`count_${p.id}`} inputMode="decimal" defaultValue={p.onHand} className="num w-24" />
                 </div>
               ))}
               <FormError state={cntState} />

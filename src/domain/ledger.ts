@@ -5,6 +5,7 @@ export interface LineInput {
   debit?: DecimalLike;
   credit?: DecimalLike;
   engineId?: string | null;
+  supplierId?: string | null;
   memo?: string;
 }
 

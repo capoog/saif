@@ -1,4 +1,4 @@
-// نموذج بيانات المرحلة 1 — النواة.
+// نموذج البيانات — المرحلة 1 (النواة) + المرحلة 2 (البيع والعملاء).
 // كل المبالغ Decimal. كل حركة مالية = قيد في دفتر الأستاذ (JournalEntry/JournalLine).
 // الجداول الظاهرة للمستخدم (Transaction, InventoryBatch, Order, Payment) بتشاور على قيودها.
 
@@ -7,8 +7,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   // Neon: DATABASE_URL = الرابط الـ pooled للتشغيل، DIRECT_URL = الرابط المباشر للـ migrations
   directUrl = env("DIRECT_URL")
 }
@@ -22,30 +22,30 @@ enum Role {
 }
 
 model User {
-  id             String    @id @default(cuid())
-  email          String    @unique
-  name           String
-  passwordHash   String
-  role           Role      @default(owner)
-  totpSecret     String?
-  totpEnabled    Boolean   @default(false)
-  failedLogins   Int       @default(0)
-  lockedUntil    DateTime?
-  active         Boolean   @default(true)
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-  sessions       Session[]
-  auditLogs      AuditLog[]
+  id           String     @id @default(cuid())
+  email        String     @unique
+  name         String
+  passwordHash String
+  role         Role       @default(owner)
+  totpSecret   String?
+  totpEnabled  Boolean    @default(false)
+  failedLogins Int        @default(0)
+  lockedUntil  DateTime?
+  active       Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  sessions     Session[]
+  auditLogs    AuditLog[]
 }
 
 model Session {
-  id         String   @id @default(cuid())
-  tokenHash  String   @unique
-  userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  expiresAt  DateTime
-  createdAt  DateTime @default(now())
-  userAgent  String?
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  userAgent String?
 
   @@index([userId])
 }
@@ -85,6 +85,8 @@ model Engine {
   journalLines JournalLine[]
   orders       Order[]
   transactions Transaction[]
+  deals        Deal[]
+  adCampaigns  AdCampaign[]
 }
 
 // ───────────────────────── دفتر الأستاذ ─────────────────────────
@@ -117,36 +119,36 @@ enum AccountKind {
 }
 
 model LedgerAccount {
-  id         String      @id @default(cuid())
-  code       String      @unique
-  name       String
-  type       AccountType
-  kind       AccountKind
+  id           String      @id @default(cuid())
+  code         String      @unique
+  name         String
+  type         AccountType
+  kind         AccountKind
   // يظهر في شاشة "الحسابات والنقد" كحساب فعلي بيتحرك فيه فلوس
-  isMoney    Boolean     @default(false)
-  isTaxReserve Boolean   @default(false)
-  system     Boolean     @default(true)
-  active     Boolean     @default(true)
-  sortOrder  Int         @default(0)
-  createdAt  DateTime    @default(now())
+  isMoney      Boolean     @default(false)
+  isTaxReserve Boolean     @default(false)
+  system       Boolean     @default(true)
+  active       Boolean     @default(true)
+  sortOrder    Int         @default(0)
+  createdAt    DateTime    @default(now())
 
   lines JournalLine[]
 }
 
 model JournalEntry {
-  id          String    @id @default(cuid())
-  date        DateTime
-  description String
-  sourceType  String // TRANSACTION | BATCH | ORDER_PAYMENT | ORDER_DELIVERY | ORDER_RETURN | ADJUSTMENT | RECONCILE | ZAKAT | OPENING
-  sourceId    String?
+  id           String        @id @default(cuid())
+  date         DateTime
+  description  String
+  sourceType   String // TRANSACTION | BATCH | ORDER_PAYMENT | ORDER_DELIVERY | ORDER_RETURN | ADJUSTMENT | RECONCILE | ZAKAT | OPENING
+  sourceId     String?
   // لتجميع رصيد العميل لكل طلب (الذمم والعرابين)
-  orderId     String?
-  order       Order?    @relation(fields: [orderId], references: [id])
-  reversalOfId String?  @unique
-  reversalOf  JournalEntry?  @relation("Reversal", fields: [reversalOfId], references: [id])
-  reversedBy  JournalEntry?  @relation("Reversal")
-  createdById String?
-  createdAt   DateTime  @default(now())
+  orderId      String?
+  order        Order?        @relation(fields: [orderId], references: [id])
+  reversalOfId String?       @unique
+  reversalOf   JournalEntry? @relation("Reversal", fields: [reversalOfId], references: [id])
+  reversedBy   JournalEntry? @relation("Reversal")
+  createdById  String?
+  createdAt    DateTime      @default(now())
 
   lines JournalLine[]
 
@@ -156,19 +158,23 @@ model JournalEntry {
 }
 
 model JournalLine {
-  id        String        @id @default(cuid())
-  entryId   String
-  entry     JournalEntry  @relation(fields: [entryId], references: [id], onDelete: Cascade)
-  accountId String
-  account   LedgerAccount @relation(fields: [accountId], references: [id])
-  debit     Decimal       @default(0) @db.Decimal(14, 2)
-  credit    Decimal       @default(0) @db.Decimal(14, 2)
-  engineId  String?
-  engine    Engine?       @relation(fields: [engineId], references: [id])
-  memo      String?
+  id         String        @id @default(cuid())
+  entryId    String
+  entry      JournalEntry  @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  accountId  String
+  account    LedgerAccount @relation(fields: [accountId], references: [id])
+  debit      Decimal       @default(0) @db.Decimal(14, 2)
+  credit     Decimal       @default(0) @db.Decimal(14, 2)
+  engineId   String?
+  engine     Engine?       @relation(fields: [engineId], references: [id])
+  // دفتر فرعي للموردين: مستحقات كل مورد لوحده
+  supplierId String?
+  supplier   Supplier?     @relation(fields: [supplierId], references: [id])
+  memo       String?
 
   @@index([accountId])
   @@index([engineId])
+  @@index([supplierId])
 }
 
 // ───────────────────────── الحركات النقدية ─────────────────────────
@@ -181,22 +187,22 @@ enum TransactionType {
 }
 
 model Transaction {
-  id              String          @id @default(cuid())
-  type            TransactionType
-  date            DateTime
-  amount          Decimal         @db.Decimal(14, 2)
-  accountId       String // الحساب النقدي المتأثر (من)
-  toAccountId     String? // في التحويل، أو الحساب المقابل (ضريبة، قرض، رأس مال…)
-  category        String? // تصنيف المصروف أو نوع الإيداع/السحب
-  engineId        String?
-  engine          Engine?         @relation(fields: [engineId], references: [id])
-  note            String?
-  refType         String? // ORDER | CAR_DEAL | PROJECT ... (ربط اختياري)
-  refId           String?
-  journalEntryId  String?         @unique
-  createdById     String?
-  createdAt       DateTime        @default(now())
-  deletedAt       DateTime?
+  id             String          @id @default(cuid())
+  type           TransactionType
+  date           DateTime
+  amount         Decimal         @db.Decimal(14, 2)
+  accountId      String // الحساب النقدي المتأثر (من)
+  toAccountId    String? // في التحويل، أو الحساب المقابل (ضريبة، قرض، رأس مال…)
+  category       String? // تصنيف المصروف أو نوع الإيداع/السحب
+  engineId       String?
+  engine         Engine?         @relation(fields: [engineId], references: [id])
+  note           String?
+  refType        String? // ORDER | CAR_DEAL | PROJECT ... (ربط اختياري)
+  refId          String?
+  journalEntryId String?         @unique
+  createdById    String?
+  createdAt      DateTime        @default(now())
+  deletedAt      DateTime?
 
   @@index([date])
 }
@@ -212,50 +218,78 @@ enum ProductStatus {
   AVOID // تجنّب
 }
 
-model Product {
-  id               String        @id @default(cuid())
-  number           Int?          @unique
-  name             String
-  category         String
-  engineId         String
-  engine           Engine        @relation(fields: [engineId], references: [id])
-  status           ProductStatus @default(LATER)
-  unit             String        @default("قطعة")
-  defaultSellPrice Decimal?      @db.Decimal(14, 2)
-  // ملاحظات تقديرية من ملف البحث — السعر الفعلي يتحدد عند أول شراء
-  buyPriceRange    String?
-  sellPriceRange   String?
-  grossMarginNote  String?
-  turnover         String?
-  b2b              String?
-  brandPotential   String?
-  regulatoryNote   String?
-  notes            String?
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
-  deletedAt        DateTime?
+enum ProductKind {
+  GOODS // منتج أو مادة بمخزون
+  BOX // بوكس بمكونات (BOM) — المخزون بيتخصم من المكونات
+}
 
-  batches    InventoryBatch[]
-  orderItems OrderItem[]
+model Product {
+  id                String        @id @default(cuid())
+  number            Int?          @unique
+  name              String
+  category          String
+  kind              ProductKind   @default(GOODS)
+  engineId          String
+  engine            Engine        @relation(fields: [engineId], references: [id])
+  status            ProductStatus @default(LATER)
+  unit              String        @default("قطعة")
+  defaultSellPrice  Decimal?      @db.Decimal(14, 2)
+  // تكلفة تقديرية للتسعير قبل أول شراء
+  estimatedUnitCost Decimal?      @db.Decimal(14, 4)
+  // ملاحظات تقديرية من ملف البحث — السعر الفعلي يتحدد عند أول شراء
+  buyPriceRange     String?
+  sellPriceRange    String?
+  grossMarginNote   String?
+  turnover          String?
+  b2b               String?
+  brandPotential    String?
+  regulatoryNote    String?
+  notes             String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  deletedAt         DateTime?
+
+  batches     InventoryBatch[]
+  orderItems  OrderItem[]
+  recipe      RecipeLine[]        @relation("BoxRecipe")
+  usedIn      RecipeLine[]        @relation("RecipeComponent")
+  poItems     PurchaseOrderItem[]
+  quoteItems  QuoteItem[]
+  adCampaigns AdCampaign[]
+}
+
+// مكونات البوكس: كل بوكس = مجموعة مواد بكميات (ممكن كسور: 0.5 كجم تمر)
+model RecipeLine {
+  id          String  @id @default(cuid())
+  boxId       String
+  box         Product @relation("BoxRecipe", fields: [boxId], references: [id], onDelete: Cascade)
+  componentId String
+  component   Product @relation("RecipeComponent", fields: [componentId], references: [id])
+  quantity    Decimal @db.Decimal(14, 3)
+
+  @@unique([boxId, componentId])
 }
 
 model InventoryBatch {
-  id           String    @id @default(cuid())
-  productId    String
-  product      Product   @relation(fields: [productId], references: [id])
-  receivedAt   DateTime
-  quantity     Int
-  remaining    Int
+  id              String    @id @default(cuid())
+  productId       String
+  product         Product   @relation(fields: [productId], references: [id])
+  receivedAt      DateTime
+  quantity        Decimal   @db.Decimal(14, 3)
+  remaining       Decimal   @db.Decimal(14, 3)
   // تكلفة الوحدة شاملة الشحن
-  unitCost     Decimal   @db.Decimal(14, 4)
-  totalCost    Decimal   @db.Decimal(14, 2)
-  paidAmount   Decimal   @db.Decimal(14, 2)
-  paidFromId   String?
-  supplierName String?
-  note         String?
-  journalEntryId String? @unique
-  createdAt    DateTime  @default(now())
-  deletedAt    DateTime?
+  unitCost        Decimal   @db.Decimal(14, 4)
+  totalCost       Decimal   @db.Decimal(14, 2)
+  paidAmount      Decimal   @db.Decimal(14, 2)
+  paidFromId      String?
+  supplierName    String?
+  supplierId      String?
+  supplier        Supplier? @relation(fields: [supplierId], references: [id])
+  purchaseOrderId String?
+  note            String?
+  journalEntryId  String?   @unique
+  createdAt       DateTime  @default(now())
+  deletedAt       DateTime?
 
   consumptions BatchConsumption[]
 
@@ -267,7 +301,7 @@ model BatchConsumption {
   id          String         @id @default(cuid())
   batchId     String
   batch       InventoryBatch @relation(fields: [batchId], references: [id])
-  quantity    Int // موجب = خصم، سالب = رجوع للمخزون
+  quantity    Decimal        @db.Decimal(14, 3) // موجب = خصم، سالب = رجوع للمخزون
   unitCost    Decimal        @db.Decimal(14, 4)
   // التكلفة الفعلية المخصومة (آخر وحدات الدفعة تاخد الباقي بالظبط عشان مفيش فروقات تقريب)
   cost        Decimal        @db.Decimal(14, 2)
@@ -284,18 +318,25 @@ model BatchConsumption {
 // ───────────────────────── العملاء والطلبات ─────────────────────────
 
 model Customer {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   name      String
-  type      String   @default("individual") // individual | company
+  type      String    @default("individual") // individual | company
   phone     String?
+  email     String?
+  city      String?
   sector    String?
   contact   String?
   channel   String?
   notes     String?
-  createdAt DateTime @default(now())
+  ownerId   String? // مندوب المبيعات المسؤول (المرحلة 3)
+  createdAt DateTime  @default(now())
   deletedAt DateTime?
 
-  orders Order[]
+  orders     Order[]
+  deals      Deal[]
+  quotes     Quote[]
+  activities Activity[]
+  contracts  B2BContract[]
 
   @@index([phone])
 }
@@ -341,6 +382,10 @@ model Order {
   cancelledAt        DateTime?
   officialInvoiceNo  String?
   officialInvoiceUrl String?
+  // عقد B2B: كل دفعة تسليم = طلب مرتبط بالعقد
+  contractId         String?
+  contract           B2BContract?  @relation(fields: [contractId], references: [id])
+  scheduledFor       DateTime?
   note               String?
   createdById        String?
   createdAt          DateTime      @default(now())
@@ -356,16 +401,16 @@ model Order {
 }
 
 model OrderItem {
-  id         String   @id @default(cuid())
-  orderId    String
-  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  productId  String
-  product    Product  @relation(fields: [productId], references: [id])
-  quantity   Int
-  unitPrice  Decimal  @db.Decimal(14, 2)
-  lineTotal  Decimal  @db.Decimal(14, 2)
+  id        String   @id @default(cuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  quantity  Int
+  unitPrice Decimal  @db.Decimal(14, 2)
+  lineTotal Decimal  @db.Decimal(14, 2)
   // تكلفة البضاعة المباعة بعد خصم FIFO (تتحدد عند التسليم)
-  cogs       Decimal? @db.Decimal(14, 2)
+  cogs      Decimal? @db.Decimal(14, 2)
 
   consumptions BatchConsumption[]
 }
@@ -398,29 +443,243 @@ model WeeklyTarget {
 }
 
 model WeeklySnapshot {
-  id              String   @id @default(cuid())
-  week            Int      @unique
-  asOf            DateTime
-  capital         Decimal  @db.Decimal(14, 2)
-  target          Decimal  @db.Decimal(14, 2)
-  gap             Decimal  @db.Decimal(14, 2)
-  gapPct          Decimal  @db.Decimal(8, 4)
-  status          String // above | on | below | danger
-  breakdown       Json // مكونات رأس المال بالكامل
-  engines         Json // ربح وعائد كل محرك في الأسبوع
+  id                String   @id @default(cuid())
+  week              Int      @unique
+  asOf              DateTime
+  capital           Decimal  @db.Decimal(14, 2)
+  target            Decimal  @db.Decimal(14, 2)
+  gap               Decimal  @db.Decimal(14, 2)
+  gapPct            Decimal  @db.Decimal(8, 4)
+  status            String // above | on | below | danger
+  breakdown         Json // مكونات رأس المال بالكامل
+  engines           Json // ربح وعائد كل محرك في الأسبوع
   suggestedDecision String
-  actualDecision  String?
-  reconciliation  Json? // فروقات الحسابات والجرد
-  closedById      String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  actualDecision    String?
+  reconciliation    Json? // فروقات الحسابات والجرد
+  closedById        String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 }
 
 model ZakatAccrual {
+  id             String   @id @default(cuid())
+  month          String   @unique // YYYY-MM
+  base           Decimal  @db.Decimal(14, 2)
+  amount         Decimal  @db.Decimal(14, 2)
+  journalEntryId String?  @unique
+  createdAt      DateTime @default(now())
+}
+
+// ───────────────────────── الموردين وأوامر الشراء ─────────────────────────
+
+model Supplier {
+  id        String    @id @default(cuid())
+  name      String
+  type      String // مصنع | موزع | سوق جملة | منشأة تعبئة | محمصة | أخرى
+  phone     String?
+  contact   String?
+  city      String?
+  rating    Int? // 1..5
+  notes     String?
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
+
+  batches        InventoryBatch[]
+  purchaseOrders PurchaseOrder[]
+  journalLines   JournalLine[]
+}
+
+enum PurchaseOrderStatus {
+  DRAFT
+  ORDERED
+  RECEIVED
+  CANCELLED
+}
+
+model PurchaseOrder {
+  id          String              @id @default(cuid())
+  number      Int                 @unique @default(autoincrement())
+  supplierId  String
+  supplier    Supplier            @relation(fields: [supplierId], references: [id])
+  date        DateTime
+  expectedAt  DateTime?
+  status      PurchaseOrderStatus @default(ORDERED)
+  // شحن وجمارك على الأمر كله — بتتوزع على البنود بنسبة القيمة عند الاستلام
+  extraCosts  Decimal             @default(0) @db.Decimal(14, 2)
+  receivedAt  DateTime?
+  note        String?
+  createdById String?
+  createdAt   DateTime            @default(now())
+
+  items PurchaseOrderItem[]
+}
+
+model PurchaseOrderItem {
+  id        String        @id @default(cuid())
+  orderId   String
+  order     PurchaseOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product       @relation(fields: [productId], references: [id])
+  quantity  Decimal       @db.Decimal(14, 3)
+  unitPrice Decimal       @db.Decimal(14, 4)
+}
+
+// ───────────────────────── CRM ─────────────────────────
+
+enum DealStage {
+  LEAD // عميل محتمل
+  CONTACTED // تم التواصل
+  INTERESTED // مهتم
+  QUOTE_SENT // عرض سعر مرسل
+  NEGOTIATION // تفاوض
+  DEPOSIT // عربون مستلم
+  WON // تم التسليم والتحصيل
+  LOST // خسرناه
+}
+
+model Deal {
+  id             String    @id @default(cuid())
+  customerId     String
+  customer       Customer  @relation(fields: [customerId], references: [id])
+  title          String
+  engineId       String?
+  engine         Engine?   @relation(fields: [engineId], references: [id])
+  stage          DealStage @default(LEAD)
+  value          Decimal?  @db.Decimal(14, 2)
+  nextFollowUpAt DateTime?
+  lostReason     String?
+  note           String?
+  ownerId        String?
+  closedAt       DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+
+  quotes     Quote[]
+  activities Activity[]
+
+  @@index([stage])
+  @@index([nextFollowUpAt])
+}
+
+// كل تواصل (مكالمة، واتساب، زيارة…) — عدّاد التواصلات اليومي بيتحسب من هنا
+model Activity {
+  id         String    @id @default(cuid())
+  date       DateTime
+  type       String // call | whatsapp | visit | email | dm | other
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id])
+  dealId     String?
+  deal       Deal?     @relation(fields: [dealId], references: [id])
+  note       String?
+  userId     String?
+  createdAt  DateTime  @default(now())
+
+  @@index([date])
+}
+
+// ───────────────────────── عروض الأسعار وعقود B2B ─────────────────────────
+
+enum QuoteStatus {
+  DRAFT
+  SENT
+  ACCEPTED
+  REJECTED
+  EXPIRED
+}
+
+model Quote {
+  id               String      @id @default(cuid())
+  number           Int         @unique @default(autoincrement())
+  customerId       String
+  customer         Customer    @relation(fields: [customerId], references: [id])
+  dealId           String?
+  deal             Deal?       @relation(fields: [dealId], references: [id])
+  date             DateTime
+  validUntil       DateTime
+  status           QuoteStatus @default(DRAFT)
+  discount         Decimal     @default(0) @db.Decimal(14, 2)
+  shippingFee      Decimal     @default(0) @db.Decimal(14, 2)
+  subtotal         Decimal     @db.Decimal(14, 2)
+  vatAmount        Decimal     @db.Decimal(14, 2)
+  total            Decimal     @db.Decimal(14, 2)
+  vatRatePct       Decimal     @default(0) @db.Decimal(5, 2)
+  pricesIncludeVat Boolean     @default(true)
+  depositPct       Decimal     @default(50) @db.Decimal(5, 2)
+  terms            String?
+  note             String?
+  createdById      String?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  items    QuoteItem[]
+  contract B2BContract?
+}
+
+model QuoteItem {
+  id          String   @id @default(cuid())
+  quoteId     String
+  quote       Quote    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  productId   String?
+  product     Product? @relation(fields: [productId], references: [id])
+  description String
+  quantity    Int
+  unitPrice   Decimal  @db.Decimal(14, 2)
+  lineTotal   Decimal  @db.Decimal(14, 2)
+  sortOrder   Int      @default(0)
+}
+
+enum ContractStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+model B2BContract {
+  id          String         @id @default(cuid())
+  number      Int            @unique @default(autoincrement())
+  customerId  String
+  customer    Customer       @relation(fields: [customerId], references: [id])
+  quoteId     String?        @unique
+  quote       Quote?         @relation(fields: [quoteId], references: [id])
+  signedAt    DateTime
+  status      ContractStatus @default(ACTIVE)
+  depositPct  Decimal        @db.Decimal(5, 2)
+  total       Decimal        @db.Decimal(14, 2)
+  note        String?
+  createdById String?
+  createdAt   DateTime       @default(now())
+
+  orders Order[]
+}
+
+// ───────────────────────── الإعلانات ─────────────────────────
+
+model AdCampaign {
   id        String   @id @default(cuid())
-  month     String   @unique // YYYY-MM
-  base      Decimal  @db.Decimal(14, 2)
-  amount    Decimal  @db.Decimal(14, 2)
-  journalEntryId String? @unique
+  name      String
+  channel   String
+  productId String?
+  product   Product? @relation(fields: [productId], references: [id])
+  engineId  String
+  engine    Engine   @relation(fields: [engineId], references: [id])
+  active    Boolean  @default(true)
   createdAt DateTime @default(now())
+
+  spends AdSpend[]
+}
+
+model AdSpend {
+  id            String     @id @default(cuid())
+  campaignId    String
+  campaign      AdCampaign @relation(fields: [campaignId], references: [id])
+  date          DateTime
+  amount        Decimal    @db.Decimal(14, 2)
+  orders        Int        @default(0)
+  revenue       Decimal    @default(0) @db.Decimal(14, 2)
+  transactionId String?    @unique
+  createdAt     DateTime   @default(now())
+  deletedAt     DateTime?
+
+  @@index([date])
 }

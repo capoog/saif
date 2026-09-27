@@ -39,6 +39,7 @@ export async function postEntry(tx: Tx, input: PostEntryInput) {
             debit: toDb2(D(l.debit)),
             credit: toDb2(D(l.credit)),
             engineId: l.engineId ?? null,
+            supplierId: l.supplierId ?? null,
             memo: l.memo,
           };
         }),
@@ -66,6 +67,7 @@ export async function reverseEntry(tx: Tx, entryId: string, date: Date, descript
           debit: l.credit,
           credit: l.debit,
           engineId: l.engineId,
+          supplierId: l.supplierId,
           memo: l.memo,
         })),
       },

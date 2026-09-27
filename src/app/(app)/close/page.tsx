@@ -22,7 +22,7 @@ export default async function ClosePage() {
     prisma.weeklySnapshot.findUnique({ where: { week } }),
     prisma.weeklySnapshot.findMany({ orderBy: { week: "desc" } }),
   ]);
-  const products = await prisma.product.findMany({ where: { id: { in: [...levels.values()].filter((l) => l.onHand > 0).map((l) => l.productId) } }, orderBy: { name: "asc" } });
+  const products = await prisma.product.findMany({ where: { id: { in: [...levels.values()].filter((l) => l.onHand.gt(0)).map((l) => l.productId) } }, orderBy: { name: "asc" } });
   const isThursday = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Riyadh", weekday: "short" }).format(now) === "Thu";
   const b = draft.breakdown;
 
@@ -33,7 +33,7 @@ export default async function ClosePage() {
         week={week}
         existing={existing ? { week: existing.week } : null}
         accounts={balances.filter((x) => x.isMoney).map((x) => ({ id: x.id, name: x.name, balance: x.balance.toFixed(2) }))}
-        products={products.map((p) => ({ id: p.id, name: p.name, onHand: levels.get(p.id)?.onHand ?? 0 }))}
+        products={products.map((p) => ({ id: p.id, name: p.name, onHand: levels.get(p.id)?.onHand.toString() ?? "0" }))}
         draft={{
           capital: b.capital.toFixed(2),
           target: draft.target.toFixed(2),

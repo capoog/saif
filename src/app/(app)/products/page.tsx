@@ -25,7 +25,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
     prisma.product.findMany({ where, orderBy: [{ status: "asc" }, { number: "asc" }] }),
     stockLevels(prisma),
   ]);
-  const rows = products.filter((p) => stock !== "1" || (levels.get(p.id)?.onHand ?? 0) > 0);
+  const rows = products.filter((p) => stock !== "1" || (levels.get(p.id)?.onHand.gt(0) ?? false));
   const totalValue = [...levels.values()].reduce((s, l) => s + Number(l.value), 0);
 
   return (
@@ -72,9 +72,9 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
                   </div>
                 </div>
                 <div className="shrink-0 text-end text-sm">
-                  <div className="num font-semibold">{l?.onHand ?? 0}</div>
-                  {l && l.reserved > 0 && <div className="text-xs text-muted">محجوز <span className="num">{l.reserved}</span></div>}
-                  {l && l.onHand > 0 && <Money value={l.value.toString()} className="text-xs text-muted" />}
+                  <div className="num font-semibold">{l?.onHand.toString() ?? 0} <span className="text-xs font-normal text-muted">{p.unit}</span></div>
+                  {l && l.reserved.gt(0) && <div className="text-xs text-muted">محجوز <span className="num">{l.reserved.toString()}</span></div>}
+                  {l && l.onHand.gt(0) && <Money value={l.value.toString()} className="text-xs text-muted" />}
                 </div>
               </Card>
             </Link>

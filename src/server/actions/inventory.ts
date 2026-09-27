@@ -8,11 +8,12 @@ import { UserError } from "../errors";
 import { actorOf, requireUser } from "../auth/session";
 import { adjustStock, createBatch } from "../services/inventory";
 import { createProduct, updateProduct } from "../services/products";
-import { entryDate, formObject, intStr, moneyStr, optionalMoneyStr, run, type ActionState } from "./run";
+import { D } from "@/domain/money";
+import { entryDate, formObject, moneyStr, optionalMoneyStr, qtyStr, run, type ActionState } from "./run";
 
 const batchSchema = z.object({
   productId: z.string().min(1, "اختار المنتج"),
-  quantity: intStr("الكمية"),
+  quantity: qtyStr("الكمية"),
   unitPrice: moneyStr("سعر الوحدة"),
   extraCosts: optionalMoneyStr("الشحن والتكاليف"),
   paidAmount: optionalMoneyStr("المدفوع"),
@@ -30,7 +31,7 @@ export async function createBatchAction(_prev: ActionState, fd: FormData): Promi
   const res = await run(async () => {
     const v = batchSchema.parse(formObject(fd));
     productId = v.productId;
-    const total = (Number(v.unitPrice) * v.quantity + Number(v.extraCosts)).toFixed(2);
+    const total = D(v.unitPrice).times(v.quantity).plus(v.extraCosts).toFixed(2);
     await createBatch(prisma, actorOf(user), {
       productId: v.productId,
       receivedAt: entryDate(v.date),
@@ -71,9 +72,9 @@ export async function updateProductAction(_prev: ActionState, fd: FormData): Pro
 export async function adjustStockAction(_prev: ActionState, fd: FormData): Promise<ActionState> {
   const user = await requireUser();
   const res = await run(async () => {
-    const v = z.object({ productId: z.string(), counted: intStr("الكمية الفعلية"), note: z.string().optional() }).parse(formObject(fd));
+    const v = z.object({ productId: z.string(), counted: qtyStr("الكمية الفعلية"), note: z.string().optional() }).parse(formObject(fd));
     const r = await adjustStock(prisma, actorOf(user), v.productId, v.counted, new Date(), v.note);
-    return { ok: true, message: r.diff === 0 ? "مفيش فرق" : `اتسجل فرق ${r.diff > 0 ? "+" : ""}${r.diff} (قيمة ${r.value.toFixed(2)})` };
+    return { ok: true, message: r.diff.isZero() ? "مفيش فرق" : `اتسجل فرق ${r.diff.gt(0) ? "+" : ""}${r.diff.toString()} (قيمة ${r.value.toFixed(2)})` };
   });
   if (res.ok) revalidatePath("/", "layout");
   return res;

@@ -61,7 +61,7 @@ describe("FIFO", () => {
   ];
   it("يخصم من الأقدم أولًا", () => {
     const r = allocateFifo(batches, 120);
-    expect(r.allocations.map((a) => [a.batchId, a.quantity])).toEqual([["b1", 100], ["b2", 20]]);
+    expect(r.allocations.map((a) => [a.batchId, a.quantity.toNumber()])).toEqual([["b1", 100], ["b2", 20]]);
     expect(r.totalCost.toFixed(2)).toBe("620.00");
   });
   it("آخر وحدات الدفعة تاخد القيمة المتبقية بالظبط (مفيش فروقات تقريب)", () => {

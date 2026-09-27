@@ -5,8 +5,9 @@ import type { Db, Tx } from "../db";
 import { audit, type Actor } from "../audit";
 import { UserError } from "../errors";
 import { postEntry, reverseEntry } from "../ledger";
-import { consumeFifo } from "./inventory";
+import { consumeForSale } from "./inventory";
 import { getSettings } from "./settings";
+import type { Settings } from "@/domain/settings";
 import { assertSufficient } from "./transactions";
 
 export interface OrderItemInput {
@@ -39,6 +40,8 @@ export interface CreateOrderInput {
   officialInvoiceNo?: string | null;
   officialInvoiceUrl?: string | null;
   note?: string | null;
+  contractId?: string | null;
+  scheduledFor?: Date | null;
 }
 
 const OPEN: OrderStatus[] = ["NEW", "CONFIRMED", "SHIPPED"];
@@ -61,12 +64,16 @@ async function engineIdFor(tx: Tx, input: CreateOrderInput, firstProductEngine: 
 }
 
 export async function createOrder(db: Db, actor: Actor, input: CreateOrderInput) {
+  const settings = await getSettings(db);
+  return db.$transaction((tx) => createOrderTx(tx, actor, input, settings));
+}
+
+export async function createOrderTx(tx: Tx, actor: Actor, input: CreateOrderInput, settings: Settings) {
   if (!input.items.length) throw new UserError("أضف بند واحد على الأقل");
   for (const it of input.items) {
     if (!Number.isInteger(it.quantity) || it.quantity <= 0) throw new UserError("الكمية لازم تكون رقم صحيح موجب");
     if (D(it.unitPrice).lt(0)) throw new UserError("السعر لا يكون سالب");
   }
-  const settings = await getSettings(db);
   const totals = computeOrderTotals({
     items: input.items,
     discount: input.discount,
@@ -76,7 +83,7 @@ export async function createOrder(db: Db, actor: Actor, input: CreateOrderInput)
     pricesIncludeVat: settings.pricesIncludeVat,
   });
 
-  return db.$transaction(async (tx) => {
+  {
     const products = await tx.product.findMany({ where: { id: { in: input.items.map((i) => i.productId) }, deletedAt: null } });
     if (products.length !== new Set(input.items.map((i) => i.productId)).size) throw new UserError("منتج غير موجود");
 
@@ -108,6 +115,8 @@ export async function createOrder(db: Db, actor: Actor, input: CreateOrderInput)
         vatRate: toDb4(totals.vatRate),
         officialInvoiceNo: input.officialInvoiceNo || null,
         officialInvoiceUrl: input.officialInvoiceUrl || null,
+        contractId: input.contractId ?? null,
+        scheduledFor: input.scheduledFor ?? null,
         note: input.note ?? null,
         createdById: actor.userId,
         items: {
@@ -128,7 +137,7 @@ export async function createOrder(db: Db, actor: Actor, input: CreateOrderInput)
     }
     if (input.status !== "NEW") await changeStatusTx(tx, actor, order.id, input.status, input.date);
     return tx.order.findUniqueOrThrow({ where: { id: order.id } });
-  });
+  }
 }
 
 async function paidSoFar(tx: Tx, orderId: string): Promise<Decimal> {
@@ -153,7 +162,7 @@ async function refreshPaymentStatus(tx: Tx, orderId: string) {
  * دفعة من العميل (أو استرداد لو المبلغ سالب).
  * قبل التسليم = عربون (التزام)، بعد التسليم = تحصيل ذمة. الاتنين على حساب العملاء لنفس الطلب.
  */
-async function addPaymentTx(tx: Tx, actor: Actor, orderId: string, input: PaymentInput) {
+export async function addPaymentTx(tx: Tx, actor: Actor, orderId: string, input: PaymentInput) {
   const amount = round2(D(input.amount));
   if (amount.isZero()) throw new UserError("المبلغ لا يكون صفر");
   const order = await tx.order.findUniqueOrThrow({ where: { id: orderId } });
@@ -196,6 +205,7 @@ async function addPaymentTx(tx: Tx, actor: Actor, orderId: string, input: Paymen
   });
   await tx.payment.update({ where: { id: payment.id }, data: { journalEntryId: entry.id } });
   await refreshPaymentStatus(tx, orderId);
+  if (order.contractId) await refreshContractTx(tx, actor, order.contractId);
   await audit(tx, actor, "create", "Payment", payment.id, { after: payment });
   return payment;
 }
@@ -214,7 +224,7 @@ async function deliverTx(tx: Tx, actor: Actor, orderId: string, date: Date) {
   const order = await tx.order.findUniqueOrThrow({ where: { id: orderId }, include: { items: { include: { product: true } } } });
   let cogs = ZERO;
   for (const item of order.items) {
-    const { totalCost } = await consumeFifo(tx, item.productId, item.quantity, date, "SALE", item.id);
+    const totalCost = await consumeForSale(tx, item.product, item.quantity, date, item.id);
     await tx.orderItem.update({ where: { id: item.id }, data: { cogs: toDb2(totalCost) } });
     cogs = cogs.plus(totalCost);
   }
@@ -250,7 +260,7 @@ async function returnTx(tx: Tx, actor: Actor, orderId: string, date: Date) {
       await tx.batchConsumption.create({
         data: {
           batchId: c.batchId,
-          quantity: -c.quantity,
+          quantity: D(c.quantity).neg().toFixed(3),
           unitCost: c.unitCost,
           cost: D(c.cost).neg().toFixed(2),
           date,
@@ -272,6 +282,7 @@ async function changeStatusTx(tx: Tx, actor: Actor, orderId: string, to: OrderSt
   else if (to === "CANCELLED") await tx.order.update({ where: { id: orderId }, data: { status: "CANCELLED", cancelledAt: date } });
   else await tx.order.update({ where: { id: orderId }, data: { status: to } });
   await refreshPaymentStatus(tx, orderId);
+  if (order.contractId) await refreshContractTx(tx, actor, order.contractId);
   await audit(tx, actor, "status", "Order", orderId, { before: { status: order.status }, after: { status: to } });
 }
 
@@ -310,4 +321,24 @@ export async function setOfficialInvoice(db: Db, actor: Actor, orderId: string, 
 export { OPEN as OPEN_ORDER_STATUSES, NEXT as ORDER_TRANSITIONS };
 export function orderBalanceDue(total: DecimalLike, payments: { amount: DecimalLike }[]) {
   return round2(D(total).minus(sum(payments.map((p) => p.amount))));
+}
+
+/** العقد يكتمل لما كل طلباته (غير الملغية) تتسلم وتتحصّل بالكامل، والصفقة تتقفل "تم" */
+export async function refreshContractTx(tx: Tx, actor: Actor, contractId: string) {
+  const c = await tx.b2BContract.findUniqueOrThrow({ where: { id: contractId }, include: { orders: true, quote: true } });
+  if (c.status === "CANCELLED") return;
+  const live = c.orders.filter((o) => o.status !== "CANCELLED" && o.deletedAt === null);
+  const done = live.length > 0 && live.every((o) => o.status === "DELIVERED" && o.paymentStatus === "PAID");
+  const next = done ? "COMPLETED" : "ACTIVE";
+  if (next !== c.status) {
+    await tx.b2BContract.update({ where: { id: c.id }, data: { status: next } });
+    await audit(tx, actor, "status", "B2BContract", c.id, { before: { status: c.status }, after: { status: next } });
+  }
+  if (done && c.quote?.dealId) {
+    const deal = await tx.deal.findUnique({ where: { id: c.quote.dealId } });
+    if (deal && deal.stage !== "WON" && deal.stage !== "LOST") {
+      await tx.deal.update({ where: { id: deal.id }, data: { stage: "WON", closedAt: new Date(), nextFollowUpAt: null } });
+      await audit(tx, actor, "stage", "Deal", deal.id, { before: { stage: deal.stage }, after: { stage: "WON" } });
+    }
+  }
 }

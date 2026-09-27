@@ -34,9 +34,9 @@ export async function stockCountAction(_prev: ActionState, fd: FormData): Promis
     const diffs: string[] = [];
     for (const [k, v] of fd.entries()) {
       if (!k.startsWith("count_") || typeof v !== "string" || v.trim() === "") continue;
-      if (!/^\d+$/.test(v.trim())) return { ok: false, error: "كمية غير صالحة" };
-      const r = await adjustStock(prisma, actorOf(user), k.slice(6), Number(v), new Date(), "جرد الإغلاق الأسبوعي");
-      if (r.diff !== 0) diffs.push(`${r.diff > 0 ? "+" : ""}${r.diff}`);
+      if (!/^\d+(\.\d{1,3})?$/.test(v.trim())) return { ok: false, error: "كمية غير صالحة" };
+      const r = await adjustStock(prisma, actorOf(user), k.slice(6), v.trim(), new Date(), "جرد الإغلاق الأسبوعي");
+      if (!r.diff.isZero()) diffs.push(`${r.diff.gt(0) ? "+" : ""}${r.diff.toString()}`);
     }
     return { ok: true, message: diffs.length ? `اتسجلت ${diffs.length} فروقات جرد` : "المخزون مطابق ✔" };
   });

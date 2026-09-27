@@ -1,90 +1,125 @@
-import { allocateFifo, InsufficientStockError, type FifoAllocation } from "@/domain/fifo";
-import { D, Decimal, round2, sum, toDb2, toDb4, ZERO } from "@/domain/money";
+import type { Product } from "@prisma/client";
+import { allocateFifo, InsufficientStockError, qty, type FifoAllocation } from "@/domain/fifo";
+import { D, Decimal, round2, sum, toDb2, toDb4, ZERO, type DecimalLike } from "@/domain/money";
 import { ageInDays } from "@/domain/plan-calendar";
 import type { Db, Tx } from "../db";
 import { audit, type Actor } from "../audit";
 import { UserError } from "../errors";
 import { postEntry } from "../ledger";
+import { enforceRules, type Override } from "../rules";
 import { assertSufficient } from "./transactions";
+
+const toDb3 = (v: DecimalLike) => qty(v).toFixed(3);
 
 export interface BatchInput {
   productId: string;
   receivedAt: Date;
-  quantity: number;
+  quantity: DecimalLike;
   /** سعر شراء الوحدة (بدون الشحن) */
-  unitPrice: string;
+  unitPrice: DecimalLike;
   /** شحن وجمارك وتكاليف إضافية على الدفعة كلها */
-  extraCosts?: string;
+  extraCosts?: DecimalLike;
   /** المدفوع الآن، والباقي يتسجل كمستحق للمورد */
-  paidAmount: string;
+  paidAmount: DecimalLike;
   paidFromId?: string | null;
+  supplierId?: string | null;
   supplierName?: string | null;
+  purchaseOrderId?: string | null;
   note?: string | null;
   /** تحديث سعر البيع الافتراضي للمنتج */
   sellPrice?: string | null;
+  /** سبب تجاوز قواعد المخاطر (لو العملية اتعترضت) */
+  override?: Override;
 }
 
-export async function createBatch(db: Db, actor: Actor, input: BatchInput) {
-  if (!Number.isInteger(input.quantity) || input.quantity <= 0) throw new UserError("الكمية لازم تكون رقم صحيح موجب");
+function batchTotals(input: BatchInput) {
+  const quantity = qty(input.quantity);
+  if (!quantity.isFinite() || quantity.lte(0)) throw new UserError("الكمية لازم تكون أكبر من صفر");
   const unitPrice = D(input.unitPrice);
   const extra = D(input.extraCosts ?? 0);
   if (unitPrice.lt(0) || extra.lt(0)) throw new UserError("التكلفة لا تكون سالبة");
-  const totalCost = round2(unitPrice.times(input.quantity).plus(extra));
+  const totalCost = round2(unitPrice.times(quantity).plus(extra));
   if (totalCost.lte(0)) throw new UserError("تكلفة الدفعة لازم تكون أكبر من صفر");
-  const unitCost = totalCost.div(input.quantity);
   const paid = round2(D(input.paidAmount));
   if (paid.lt(0) || paid.gt(totalCost)) throw new UserError("المدفوع لازم يكون بين صفر وإجمالي التكلفة");
-  const payable = totalCost.minus(paid);
-  if (payable.gt(0) && !input.supplierName?.trim()) throw new UserError("اكتب اسم المورد للمبلغ الآجل");
+  return { quantity, totalCost, unitCost: totalCost.div(quantity), paid, payable: totalCost.minus(paid) };
+}
 
+/** تسجيل دفعة داخل transaction قائمة (بدون فحص القواعد — المستدعي مسؤول عنه) */
+export async function createBatchTx(tx: Tx, actor: Actor, input: BatchInput) {
+  const { quantity, totalCost, unitCost, paid, payable } = batchTotals(input);
+  const product = await tx.product.findUnique({ where: { id: input.productId } });
+  if (!product || product.deletedAt) throw new UserError("المنتج غير موجود");
+  if (product.kind === "BOX") throw new UserError(`«${product.name}» بوكس — اشتري مكوناته مش البوكس نفسه`);
+
+  let supplierName = input.supplierName?.trim() || null;
+  if (input.supplierId) {
+    const sup = await tx.supplier.findUnique({ where: { id: input.supplierId } });
+    if (!sup) throw new UserError("المورد غير موجود");
+    supplierName = sup.name;
+  }
+  if (payable.gt(0) && !input.supplierId && !supplierName) throw new UserError("اختار المورد للمبلغ الآجل");
+
+  let paidFromCode: string | null = null;
+  if (paid.gt(0)) {
+    if (!input.paidFromId) throw new UserError("اختار الحساب اللي هتدفع منه");
+    const acct = await tx.ledgerAccount.findUnique({ where: { id: input.paidFromId } });
+    if (!acct?.isMoney) throw new UserError("حساب الدفع غير صالح");
+    await assertSufficient(tx, acct.id, paid, acct.name);
+    paidFromCode = acct.code;
+  }
+
+  const batch = await tx.inventoryBatch.create({
+    data: {
+      productId: product.id,
+      receivedAt: input.receivedAt,
+      quantity: toDb3(quantity),
+      remaining: toDb3(quantity),
+      unitCost: toDb4(unitCost),
+      totalCost: toDb2(totalCost),
+      paidAmount: toDb2(paid),
+      paidFromId: paid.gt(0) ? input.paidFromId : null,
+      supplierId: input.supplierId ?? null,
+      supplierName,
+      purchaseOrderId: input.purchaseOrderId ?? null,
+      note: input.note ?? null,
+    },
+  });
+  const entry = await postEntry(tx, {
+    date: input.receivedAt,
+    description: `شراء دفعة: ${product.name} × ${quantity.toString()}`,
+    sourceType: "BATCH",
+    sourceId: batch.id,
+    createdById: actor.userId,
+    lines: [
+      { accountCode: "INVENTORY", debit: totalCost, engineId: product.engineId },
+      ...(paidFromCode ? [{ accountCode: paidFromCode, credit: paid }] : []),
+      { accountCode: "SUPPLIERS", credit: payable, supplierId: input.supplierId ?? null, memo: supplierName ?? undefined },
+    ],
+  });
+  const saved = await tx.inventoryBatch.update({ where: { id: batch.id }, data: { journalEntryId: entry.id } });
+
+  const productPatch: Record<string, unknown> = {};
+  if (product.status === "PRIORITY_TEST" || product.status === "LATER") productPatch.status = "TESTING";
+  if (input.sellPrice) productPatch.defaultSellPrice = toDb2(input.sellPrice);
+  if (Object.keys(productPatch).length) await tx.product.update({ where: { id: product.id }, data: productPatch });
+
+  await audit(tx, actor, "create", "InventoryBatch", batch.id, { after: saved });
+  return saved;
+}
+
+/** شراء دفعة: قواعد المخاطر (حجم الصفقة، السيولة، سقف المخزون، الطوارئ) + التسجيل */
+export async function createBatch(db: Db, actor: Actor, input: BatchInput) {
+  const { totalCost, paid } = batchTotals(input);
   return db.$transaction(async (tx) => {
-    const product = await tx.product.findUnique({ where: { id: input.productId } });
-    if (!product || product.deletedAt) throw new UserError("المنتج غير موجود");
-
-    let paidFromCode: string | null = null;
-    if (paid.gt(0)) {
-      if (!input.paidFromId) throw new UserError("اختار الحساب اللي هتدفع منه");
-      const acct = await tx.ledgerAccount.findUnique({ where: { id: input.paidFromId } });
-      if (!acct?.isMoney) throw new UserError("حساب الدفع غير صالح");
-      await assertSufficient(tx, acct.id, paid, acct.name);
-      paidFromCode = acct.code;
-    }
-
-    const batch = await tx.inventoryBatch.create({
-      data: {
-        productId: product.id,
-        receivedAt: input.receivedAt,
-        quantity: input.quantity,
-        remaining: input.quantity,
-        unitCost: toDb4(unitCost),
-        totalCost: toDb2(totalCost),
-        paidAmount: toDb2(paid),
-        paidFromId: paid.gt(0) ? input.paidFromId : null,
-        supplierName: input.supplierName?.trim() || null,
-        note: input.note ?? null,
-      },
-    });
-    const entry = await postEntry(tx, {
-      date: input.receivedAt,
-      description: `شراء دفعة: ${product.name} × ${input.quantity}`,
-      sourceType: "BATCH",
-      sourceId: batch.id,
-      createdById: actor.userId,
-      lines: [
-        { accountCode: "INVENTORY", debit: totalCost, engineId: product.engineId },
-        ...(paidFromCode ? [{ accountCode: paidFromCode, credit: paid }] : []),
-        { accountCode: "SUPPLIERS", credit: payable, memo: input.supplierName ?? undefined },
-      ],
-    });
-    const saved = await tx.inventoryBatch.update({ where: { id: batch.id }, data: { journalEntryId: entry.id } });
-
-    const productPatch: Record<string, unknown> = {};
-    if (product.status === "PRIORITY_TEST" || product.status === "LATER") productPatch.status = "TESTING";
-    if (input.sellPrice) productPatch.defaultSellPrice = toDb2(input.sellPrice);
-    if (Object.keys(productPatch).length) await tx.product.update({ where: { id: product.id }, data: productPatch });
-
-    await audit(tx, actor, "create", "InventoryBatch", batch.id, { after: saved });
-    return saved;
+    await enforceRules(
+      tx,
+      actor,
+      { kind: "INVENTORY_PURCHASE", amount: totalCost, cashOut: paid, inventoryIn: totalCost },
+      input.override,
+      { entity: "InventoryBatch" },
+    );
+    return createBatchTx(tx, actor, input);
   });
 }
 
@@ -97,7 +132,7 @@ async function batchesWithValue(tx: Tx, productId: string) {
   return batches.map((b) => ({
     id: b.id,
     receivedAt: b.receivedAt,
-    remaining: b.remaining,
+    remaining: D(b.remaining),
     unitCost: D(b.unitCost),
     remainingValue: D(b.totalCost).minus(sum(b.consumptions.map((c) => c.cost))),
   }));
@@ -107,7 +142,7 @@ async function batchesWithValue(tx: Tx, productId: string) {
 export async function consumeFifo(
   tx: Tx,
   productId: string,
-  quantity: number,
+  quantity: DecimalLike,
   date: Date,
   reason: "SALE" | "ADJUSTMENT",
   orderItemId?: string,
@@ -125,14 +160,14 @@ export async function consumeFifo(
   }
   for (const a of result.allocations) {
     const updated = await tx.inventoryBatch.updateMany({
-      where: { id: a.batchId, remaining: { gte: a.quantity } },
-      data: { remaining: { decrement: a.quantity } },
+      where: { id: a.batchId, remaining: { gte: toDb3(a.quantity) } },
+      data: { remaining: { decrement: toDb3(a.quantity) } },
     });
     if (updated.count !== 1) throw new UserError("المخزون اتغير أثناء العملية، حاول تاني");
     await tx.batchConsumption.create({
       data: {
         batchId: a.batchId,
-        quantity: a.quantity,
+        quantity: toDb3(a.quantity),
         unitCost: toDb4(a.unitCost),
         cost: toDb2(a.cost),
         date,
@@ -144,100 +179,116 @@ export async function consumeFifo(
   return result;
 }
 
+/**
+ * خصم بند طلب من المخزون: منتج عادي = FIFO منه. بوكس = FIFO من كل مكوّن × الكمية.
+ */
+export async function consumeForSale(tx: Tx, product: Pick<Product, "id" | "kind" | "name">, quantity: number, date: Date, orderItemId: string) {
+  if (product.kind !== "BOX") return (await consumeFifo(tx, product.id, quantity, date, "SALE", orderItemId)).totalCost;
+  const recipe = await tx.recipeLine.findMany({ where: { boxId: product.id } });
+  if (recipe.length === 0) throw new UserError(`البوكس «${product.name}» ملوش مكونات — ضيف الوصفة الأول`);
+  let total = ZERO;
+  for (const line of recipe) {
+    const { totalCost } = await consumeFifo(tx, line.componentId, D(line.quantity).times(quantity), date, "SALE", orderItemId);
+    total = total.plus(totalCost);
+  }
+  return total;
+}
+
 export interface StockLevel {
   productId: string;
-  onHand: number;
-  reserved: number;
-  available: number;
+  onHand: Decimal;
+  reserved: Decimal;
+  available: Decimal;
   value: Decimal;
 }
 
-/** المخزون الفعلي، والمحجوز لطلبات لسه متسلمتش */
+/** المخزون الفعلي، والمحجوز لطلبات لسه متسلمتش (البوكسات بتحجز من مكوناتها) */
 export async function stockLevels(db: Db | Tx, productIds?: string[]): Promise<Map<string, StockLevel>> {
   const where = productIds ? { productId: { in: productIds } } : {};
-  const [batches, reservedRows] = await Promise.all([
+  const [batches, openItems] = await Promise.all([
     db.inventoryBatch.findMany({
       where: { ...where, deletedAt: null, remaining: { gt: 0 } },
       include: { consumptions: { select: { cost: true } } },
     }),
-    db.orderItem.groupBy({
-      by: ["productId"],
-      where: { ...where, order: { status: { in: ["NEW", "CONFIRMED", "SHIPPED"] }, deletedAt: null } },
-      _sum: { quantity: true },
+    db.orderItem.findMany({
+      where: { order: { status: { in: ["NEW", "CONFIRMED", "SHIPPED"] }, deletedAt: null } },
+      select: { productId: true, quantity: true, product: { select: { kind: true, recipe: { select: { componentId: true, quantity: true } } } } },
     }),
   ]);
   const map = new Map<string, StockLevel>();
   const get = (id: string) => {
     let s = map.get(id);
-    if (!s) map.set(id, (s = { productId: id, onHand: 0, reserved: 0, available: 0, value: ZERO }));
+    if (!s) map.set(id, (s = { productId: id, onHand: ZERO, reserved: ZERO, available: ZERO, value: ZERO }));
     return s;
   };
   for (const b of batches) {
     const s = get(b.productId);
-    s.onHand += b.remaining;
+    s.onHand = s.onHand.plus(D(b.remaining));
     s.value = s.value.plus(D(b.totalCost).minus(sum(b.consumptions.map((c) => c.cost))));
   }
-  for (const r of reservedRows) get(r.productId).reserved = r._sum.quantity ?? 0;
-  for (const s of map.values()) s.available = s.onHand - s.reserved;
+  for (const it of openItems) {
+    const lines = it.product.kind === "BOX" ? it.product.recipe.map((r) => ({ id: r.componentId, q: D(r.quantity).times(it.quantity) })) : [{ id: it.productId, q: D(it.quantity) }];
+    for (const l of lines) {
+      if (productIds && !productIds.includes(l.id)) continue;
+      const s = get(l.id);
+      s.reserved = s.reserved.plus(l.q);
+    }
+  }
+  for (const s of map.values()) s.available = s.onHand.minus(s.reserved);
   return map;
-}
-
-export interface BatchStats {
-  id: string;
-  ageDays: number;
-  soldQty: number;
-  sellThroughPct: number;
-  /** نسبة البيع خلال أول 14 يوم (null لو الدفعة أحدث من 14 يوم) */
-  sellThroughWindowPct: number | null;
 }
 
 export async function batchStats(db: Db | Tx, now: Date, windowDays: number) {
   const batches = await db.inventoryBatch.findMany({
     where: { deletedAt: null },
-    include: { consumptions: true, product: { select: { name: true, id: true } } },
+    include: { consumptions: true, product: { select: { name: true, id: true, unit: true } } },
     orderBy: { receivedAt: "desc" },
   });
   return batches.map((b) => {
     const sales = b.consumptions.filter((c) => c.reason === "SALE" || c.reason === "RETURN");
-    const soldQty = sales.reduce((s, c) => s + c.quantity, 0);
+    const soldQty = sum(sales.map((c) => c.quantity));
     const windowEnd = b.receivedAt.getTime() + windowDays * 86400000;
-    const soldInWindow = sales.filter((c) => c.date.getTime() <= windowEnd).reduce((s, c) => s + c.quantity, 0);
+    const soldInWindow = sum(sales.filter((c) => c.date.getTime() <= windowEnd).map((c) => c.quantity));
     const age = ageInDays(b.receivedAt, now);
+    const q = D(b.quantity);
+    const pct = (x: Decimal) => Number(x.div(q).times(100).toDecimalPlaces(1));
     return {
       id: b.id,
       productId: b.productId,
       productName: b.product.name,
+      unit: b.product.unit,
       receivedAt: b.receivedAt,
-      quantity: b.quantity,
-      remaining: b.remaining,
+      quantity: q,
+      remaining: D(b.remaining),
       unitCost: D(b.unitCost),
       totalCost: D(b.totalCost),
       supplierName: b.supplierName,
       ageDays: age,
       soldQty,
-      sellThroughPct: Math.round((soldQty / b.quantity) * 1000) / 10,
-      sellThroughWindowPct: age >= windowDays ? Math.round((soldInWindow / b.quantity) * 1000) / 10 : null,
+      sellThroughPct: pct(soldQty),
+      sellThroughWindowPct: age >= windowDays ? pct(soldInWindow) : null,
     };
   });
 }
 
 /** جرد: يضبط الكمية الفعلية للمنتج. النقص يتخصم FIFO، والزيادة تتسجل دفعة تسوية بآخر تكلفة. */
-export async function adjustStock(db: Db, actor: Actor, productId: string, countedQty: number, date: Date, note?: string) {
-  if (!Number.isInteger(countedQty) || countedQty < 0) throw new UserError("الكمية لازم تكون رقم صحيح ≥ 0");
+export async function adjustStock(db: Db, actor: Actor, productId: string, countedQty: DecimalLike, date: Date, note?: string) {
+  const counted = qty(countedQty);
+  if (!counted.isFinite() || counted.lt(0)) throw new UserError("الكمية لازم تكون ≥ 0");
   return db.$transaction(async (tx) => {
     const product = await tx.product.findUniqueOrThrow({ where: { id: productId } });
     const level = (await stockLevels(tx, [productId])).get(productId);
-    const onHand = level?.onHand ?? 0;
-    const diff = countedQty - onHand;
-    if (diff === 0) return { diff: 0, value: ZERO };
+    const onHand = level?.onHand ?? ZERO;
+    const diff = counted.minus(onHand);
+    if (diff.isZero()) return { diff, value: ZERO };
 
     let value: Decimal;
-    if (diff < 0) {
-      const { totalCost } = await consumeFifo(tx, productId, -diff, date, "ADJUSTMENT");
+    if (diff.lt(0)) {
+      const { totalCost } = await consumeFifo(tx, productId, diff.neg(), date, "ADJUSTMENT");
       value = totalCost;
       await postEntry(tx, {
         date,
-        description: `جرد: نقص ${-diff} من ${product.name}`,
+        description: `جرد: نقص ${diff.neg().toString()} من ${product.name}`,
         sourceType: "ADJUSTMENT",
         sourceId: productId,
         createdById: actor.userId,
@@ -254,8 +305,8 @@ export async function adjustStock(db: Db, actor: Actor, productId: string, count
         data: {
           productId,
           receivedAt: date,
-          quantity: diff,
-          remaining: diff,
+          quantity: toDb3(diff),
+          remaining: toDb3(diff),
           unitCost: last.unitCost,
           totalCost: toDb2(value),
           paidAmount: "0",
@@ -264,7 +315,7 @@ export async function adjustStock(db: Db, actor: Actor, productId: string, count
       });
       const entry = await postEntry(tx, {
         date,
-        description: `جرد: زيادة ${diff} من ${product.name}`,
+        description: `جرد: زيادة ${diff.toString()} من ${product.name}`,
         sourceType: "ADJUSTMENT",
         sourceId: batch.id,
         createdById: actor.userId,
@@ -275,24 +326,55 @@ export async function adjustStock(db: Db, actor: Actor, productId: string, count
       });
       await tx.inventoryBatch.update({ where: { id: batch.id }, data: { journalEntryId: entry.id } });
     }
-    await audit(tx, actor, "adjust", "Product", productId, { before: { onHand }, after: { countedQty }, reason: note });
+    await audit(tx, actor, "adjust", "Product", productId, { before: { onHand }, after: { counted }, reason: note });
     return { diff, value };
   });
+}
+
+/**
+ * تكلفة الوحدة التقديرية للتسعير: متوسط المخزون الحالي ← آخر دفعة ← التكلفة التقديرية المسجلة ← غير معروف.
+ */
+export async function unitCostEstimate(db: Db | Tx, productId: string): Promise<{ cost: Decimal | null; source: "stock" | "last" | "estimate" | null }> {
+  const level = (await stockLevels(db, [productId])).get(productId);
+  if (level && level.onHand.gt(0)) return { cost: level.value.div(level.onHand), source: "stock" };
+  const last = await db.inventoryBatch.findFirst({ where: { productId, deletedAt: null }, orderBy: { receivedAt: "desc" } });
+  if (last) return { cost: D(last.unitCost), source: "last" };
+  const p = await db.product.findUnique({ where: { id: productId }, select: { estimatedUnitCost: true } });
+  if (p?.estimatedUnitCost) return { cost: D(p.estimatedUnitCost), source: "estimate" };
+  return { cost: null, source: null };
+}
+
+/** تكلفة البوكس من مكوناته */
+export async function boxCost(db: Db | Tx, boxId: string) {
+  const recipe = await db.recipeLine.findMany({ where: { boxId }, include: { component: { select: { id: true, name: true, unit: true } } } });
+  const lines = [];
+  let total = ZERO;
+  let complete = recipe.length > 0;
+  for (const r of recipe) {
+    const est = await unitCostEstimate(db, r.componentId);
+    const lineCost = est.cost ? round2(est.cost.times(D(r.quantity))) : null;
+    if (lineCost) total = total.plus(lineCost);
+    else complete = false;
+    lines.push({ id: r.id, componentId: r.componentId, name: r.component.name, unit: r.component.unit, quantity: D(r.quantity), unitCost: est.cost, source: est.source, lineCost });
+  }
+  return { lines, total: round2(total), complete };
 }
 
 /** مؤشرات المنتج: الكمية المباعة، الإيراد بدون ضريبة، التكلفة، الهامش الفعلي، سرعة البيع */
 export async function productMetrics(db: Db | Tx, productId: string, now: Date) {
   const items = await db.orderItem.findMany({
     where: { productId, order: { status: "DELIVERED", deletedAt: null } },
-    include: { order: { select: { vatRate: true, pricesIncludeVat: true, deliveredAt: true } } },
+    include: { order: { select: { id: true, vatRate: true, pricesIncludeVat: true, deliveredAt: true } } },
   });
-  let qty = 0;
+  let qtySold = 0;
   let revenue = ZERO;
   let cogs = ZERO;
   let recentQty = 0;
+  const orders = new Set<string>();
   const since = now.getTime() - 14 * 86400000;
   for (const it of items) {
-    qty += it.quantity;
+    qtySold += it.quantity;
+    orders.add(it.order.id);
     const rate = D(it.order.vatRate);
     const net = it.order.pricesIncludeVat && rate.gt(0) ? D(it.lineTotal).div(rate.plus(1)) : D(it.lineTotal);
     revenue = revenue.plus(net);
@@ -300,12 +382,27 @@ export async function productMetrics(db: Db | Tx, productId: string, now: Date) 
     if (it.order.deliveredAt && it.order.deliveredAt.getTime() >= since) recentQty += it.quantity;
   }
   revenue = round2(revenue);
+  const grossProfit = round2(revenue.minus(cogs));
   return {
-    qtySold: qty,
+    qtySold,
+    ordersCount: orders.size,
     revenue,
     cogs: round2(cogs),
-    grossProfit: round2(revenue.minus(cogs)),
+    grossProfit,
+    grossProfitPerOrder: orders.size > 0 ? round2(grossProfit.div(orders.size)) : null,
     marginPct: revenue.gt(0) ? round2(revenue.minus(cogs).div(revenue).times(100)) : null,
     velocityPerDay: Math.round((recentQty / 14) * 100) / 100,
   };
+}
+
+/** كام بوكس ممكن يتعمل من المخزون المتاح لمكوناته */
+export function boxesAvailable(levels: Map<string, StockLevel>, recipe: { componentId: string; quantity: DecimalLike }[]): number {
+  if (recipe.length === 0) return 0;
+  let min = Infinity;
+  for (const r of recipe) {
+    const avail = levels.get(r.componentId)?.available ?? ZERO;
+    const n = D(r.quantity).gt(0) ? Math.floor(Number(avail.div(D(r.quantity)))) : 0;
+    min = Math.min(min, Math.max(n, 0));
+  }
+  return min === Infinity ? 0 : min;
 }

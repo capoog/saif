@@ -36,7 +36,7 @@ export function ProductEditForm({ id, status, price, notes }: { id: string; stat
   );
 }
 
-export function StockCountForm({ productId, onHand }: { productId: string; onHand: number }) {
+export function StockCountForm({ productId, onHand }: { productId: string; onHand: string }) {
   const [state, action] = useActionState<ActionState, FormData>(adjustStockAction, {});
   return (
     <form action={action} className="space-y-3">
@@ -45,7 +45,7 @@ export function StockCountForm({ productId, onHand }: { productId: string; onHan
         الكمية في النظام: <span className="num font-semibold text-fg">{onHand}</span>. النقص بيتسجل مصروف «فروقات جرد» بتكلفة FIFO.
       </p>
       <Field label="الكمية الفعلية">
-        <Input name="counted" inputMode="numeric" defaultValue={onHand} className="num" />
+        <Input name="counted" inputMode="decimal" defaultValue={onHand} className="num" />
       </Field>
       <Field label="السبب">
         <Input name="note" placeholder="تالف، ضايع، عيّنة…" />

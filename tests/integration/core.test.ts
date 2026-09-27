@@ -86,7 +86,7 @@ describe("المخزون والطلبات", () => {
     let c = await getCapital(db, NOW);
     expect(c.customerDeposits.toFixed(2)).toBe("100.00");
     expect(c.capital.toFixed(2)).toBe("20000.00"); // العربون مش ربح
-    expect((await stockLevels(db)).get(p.id)!.available).toBe(0); // محجوز
+    expect((await stockLevels(db)).get(p.id)!.available.toNumber()).toBe(0); // محجوز
 
     await changeOrderStatus(db, actor, o.id, "DELIVERED", { date: at("2026-09-30") });
     c = await getCapital(db, NOW);
@@ -109,7 +109,7 @@ describe("المخزون والطلبات", () => {
     const c = await getCapital(db, NOW);
     expect(c.capital.toFixed(2)).toBe("20000.00");
     expect(c.inventory.toFixed(2)).toBe("50.00");
-    expect((await stockLevels(db)).get(p.id)!.onHand).toBe(10);
+    expect((await stockLevels(db)).get(p.id)!.onHand.toNumber()).toBe(10);
     expect((await db.order.findUniqueOrThrow({ where: { id: o.id } })).paymentStatus).toBe("REFUNDED");
   });
 

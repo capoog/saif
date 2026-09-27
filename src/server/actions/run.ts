@@ -51,6 +51,14 @@ export const intStr = (label: string) =>
     .refine((v) => /^\d+$/.test(v), `${label}: رقم صحيح`)
     .transform(Number);
 
+/** كمية بحد أقصى 3 خانات عشرية (كجم مثلًا) */
+export const qtyStr = (label: string) =>
+  z
+    .string({ error: `${label} مطلوب` })
+    .trim()
+    .transform((v) => v.replace(/,/g, "").replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d))))
+    .refine((v) => /^\d+(\.\d{1,3})?$/.test(v), `${label}: رقم غير صالح`);
+
 export function formObject(fd: FormData): Record<string, string> {
   const o: Record<string, string> = {};
   for (const [k, v] of fd.entries()) if (typeof v === "string") o[k] = v;
