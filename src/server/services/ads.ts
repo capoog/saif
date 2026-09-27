@@ -30,7 +30,7 @@ export async function setCampaignActive(db: Db, actor: Actor, id: string, active
   });
 }
 
-/** إنفاق إعلاني: بيتسجل مصروف تسويق على محرك الحملة، ومعاه عدد الطلبات والإيراد لحساب CPA و ROAS */
+/** إنفاق إعلاني: يتسجل مصروف تسويق على محرك الحملة، ومعاه عدد الطلبات والإيراد لحساب CPA و ROAS */
 export async function addAdSpend(
   db: Db,
   actor: Actor,
@@ -61,7 +61,7 @@ export async function addAdSpend(
 
 export async function deleteAdSpend(db: Db, actor: Actor, id: string, reason: string) {
   const s = await db.adSpend.findUniqueOrThrow({ where: { id } });
-  if (s.deletedAt) throw new UserError("اتلغى بالفعل");
+  if (s.deletedAt) throw new UserError("انلغى بالفعل");
   if (s.transactionId) await deleteTransaction(db, actor, s.transactionId, reason);
   await db.adSpend.update({ where: { id }, data: { deletedAt: new Date() } });
 }

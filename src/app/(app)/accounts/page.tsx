@@ -50,14 +50,14 @@ export default async function AccountsPage() {
               </div>
             ))}
           </div>
-          <p className="mt-2 text-xs text-muted">العرابين بتظهر في شاشة الطلبات لكل طلب.</p>
+          <p className="mt-2 text-xs text-muted">العرابين تظهر في شاشة الطلبات لكل طلب.</p>
         </Card>
       )}
 
       <Card>
         <CardTitle>آخر الحركات</CardTitle>
         {txs.length === 0 ? (
-          <Empty>مفيش حركات لسه. الرصيد الافتتاحي متسجل تلقائيًا.</Empty>
+          <Empty>ما فيه حركات للحين. الرصيد الافتتاحي مسجّل تلقائيًا.</Empty>
         ) : (
           <div className="divide-y divide-border">
             {txs.map((t) => (

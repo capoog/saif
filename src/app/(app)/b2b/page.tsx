@@ -19,7 +19,7 @@ export default async function B2BPage() {
   const pct = Math.min((r.signed / r.target) * 100, 100);
   return (
     <div className="space-y-4">
-      <PageHeader title="عقود B2B ورمضان" subtitle="العقد بيتعمل من عرض سعر مقبول" />
+      <PageHeader title="عقود B2B ورمضان" subtitle="العقد ينعمل من عرض سعر مقبول" />
 
       <Card className="border-2 border-primary/40">
         <div className="flex items-baseline justify-between">
@@ -31,7 +31,7 @@ export default async function B2BPage() {
         <div className="mt-2 flex items-baseline gap-2">
           <span className="num text-4xl font-bold">{r.signed}</span>
           <span className="num text-lg text-muted">/ {r.target}</span>
-          {r.pendingDeposit > 0 && <Badge tone="warn">{r.pendingDeposit} مستني عربون</Badge>}
+          {r.pendingDeposit > 0 && <Badge tone="warn">{r.pendingDeposit} ينتظر عربون</Badge>}
         </div>
         <div className="mt-2 h-3 overflow-hidden rounded-full bg-subtle">
           <div className={cn("h-full rounded-full", pct >= 100 ? "bg-ok" : "bg-primary")} style={{ width: `${pct}%` }} />
@@ -45,7 +45,7 @@ export default async function B2BPage() {
         <CardTitle>العقود</CardTitle>
         {contracts.length === 0 ? (
           <Empty>
-            مفيش عقود. ابدأ من <Link href="/quotes/new" className="text-primary">عرض سعر</Link>.
+            ما فيه عقود. ابدأ من <Link href="/quotes/new" className="text-primary">عرض سعر</Link>.
           </Empty>
         ) : (
           <div className="divide-y divide-border">
@@ -58,7 +58,7 @@ export default async function B2BPage() {
                   <div>
                     <div className="font-medium">{k.customer.name}</div>
                     <div className="text-xs text-muted">
-                      عقد <span className="num">#{k.number}</span> · {date(k.signedAt)} · اتسلم <span className="num">{delivered}/{live.length}</span>
+                      عقد <span className="num">#{k.number}</span> · {date(k.signedAt)} · تسلّم <span className="num">{delivered}/{live.length}</span>
                     </div>
                   </div>
                   <div className="text-end">
@@ -78,7 +78,7 @@ export default async function B2BPage() {
       <Card>
         <CardTitle>احتياج المواد للطلبات المفتوحة</CardTitle>
         {needs.length === 0 ? (
-          <p className="text-sm text-muted">مفيش طلبات مفتوحة.</p>
+          <p className="text-sm text-muted">ما فيه طلبات مفتوحة.</p>
         ) : (
           <div className="divide-y divide-border text-sm">
             {needs.map((n) => (

@@ -39,7 +39,7 @@ export default async function SupplierPage({ params }: { params: Promise<{ id: s
       <Card>
         <CardTitle>أوامر الشراء</CardTitle>
         {s.purchaseOrders.length === 0 ? (
-          <p className="text-sm text-muted">مفيش.</p>
+          <p className="text-sm text-muted">ما فيه.</p>
         ) : (
           s.purchaseOrders.map((p) => (
             <Link key={p.id} href={`/purchase-orders/${p.id}`} className="flex justify-between py-2 text-sm">

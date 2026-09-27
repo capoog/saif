@@ -86,7 +86,7 @@ export async function updateProductAction(_prev: ActionState, fd: FormData): Pro
     });
   });
   if (res.ok) revalidatePath("/", "layout");
-  return res.ok ? { ok: true, message: "اتحفظ" } : res;
+  return res.ok ? { ok: true, message: "انحفظ" } : res;
 }
 
 export async function setRecipeAction(_prev: ActionState, fd: FormData): Promise<ActionState> {
@@ -102,7 +102,7 @@ export async function setRecipeAction(_prev: ActionState, fd: FormData): Promise
     await setRecipe(prisma, actorOf(user), boxId, lines);
   });
   if (res.ok) revalidatePath("/", "layout");
-  return res.ok ? { ok: true, message: "اتحفظت الوصفة" } : res;
+  return res.ok ? { ok: true, message: "انحفظت الوصفة" } : res;
 }
 
 export async function adjustStockAction(_prev: ActionState, fd: FormData): Promise<ActionState> {
@@ -110,7 +110,7 @@ export async function adjustStockAction(_prev: ActionState, fd: FormData): Promi
   const res = await run(async () => {
     const v = z.object({ productId: z.string(), counted: qtyStr("الكمية الفعلية"), note: z.string().optional() }).parse(formObject(fd));
     const r = await adjustStock(prisma, actorOf(user), v.productId, v.counted, new Date(), v.note);
-    return { ok: true, message: r.diff.isZero() ? "مفيش فرق" : `اتسجل فرق ${r.diff.gt(0) ? "+" : ""}${r.diff.toString()} (قيمة ${r.value.toFixed(2)})` };
+    return { ok: true, message: r.diff.isZero() ? "ما فيه فرق" : `تسجّل فرق ${r.diff.gt(0) ? "+" : ""}${r.diff.toString()} (قيمة ${r.value.toFixed(2)})` };
   });
   if (res.ok) revalidatePath("/", "layout");
   return res;

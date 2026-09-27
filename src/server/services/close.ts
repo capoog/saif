@@ -99,7 +99,7 @@ export async function accrueZakatIfNeeded(db: Db, actor: Actor, asOf: Date) {
 export async function reconcileAccount(db: Db, actor: Actor, accountId: string, actual: string, date: Date) {
   return db.$transaction(async (tx) => {
     const acct = await tx.ledgerAccount.findUniqueOrThrow({ where: { id: accountId } });
-    if (!acct.isMoney) throw new UserError("الحساب مش نقدي");
+    if (!acct.isMoney) throw new UserError("الحساب مو نقدي");
     const system = await accountBalance(tx, accountId);
     const diff = round2(D(actual).minus(system));
     if (diff.isZero()) return { account: acct.name, system, actual: D(actual), diff };
@@ -144,7 +144,7 @@ export async function closeDraft(db: Db | Tx, asOf: Date = new Date(), week?: nu
     getCapital(db, asOf),
     engineWeekResults(db, w, asOf),
   ]);
-  if (!target) throw new UserError(`مفيش هدف للأسبوع ${w}`);
+  if (!target) throw new UserError(`ما فيه هدف للأسبوع ${w}`);
   const cmp = compareToTarget(breakdown.capital, target.endCapitalTarget, settings);
   return {
     week: w,
@@ -157,7 +157,7 @@ export async function closeDraft(db: Db | Tx, asOf: Date = new Date(), week?: nu
   };
 }
 
-/** حفظ Snapshot الأسبوع. بعد الحفظ مفيش تعديل غير للـ owner مع سبب (overwrite=true). */
+/** حفظ Snapshot الأسبوع. بعد الحفظ ما فيه تعديل غير للـ owner مع سبب (overwrite=true). */
 export async function closeWeek(
   db: Db,
   actor: Actor & { role?: string },
@@ -166,7 +166,7 @@ export async function closeWeek(
   const asOf = opts.asOf ?? new Date();
   const week = opts.week ?? planWeek(asOf);
   const existing = await db.weeklySnapshot.findUnique({ where: { week } });
-  if (existing && !opts.overwrite) throw new UserError(`أسبوع ${week} متقفل بالفعل`);
+  if (existing && !opts.overwrite) throw new UserError(`أسبوع ${week} مقفل بالفعل`);
   if (existing && (actor.role !== "owner" || !opts.reason?.trim())) throw new UserError("تعديل إغلاق محفوظ يحتاج صلاحية المالك وسبب");
 
   await accrueZakatIfNeeded(db, actor, asOf);

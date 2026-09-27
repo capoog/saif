@@ -28,7 +28,7 @@ export interface BatchInput {
   note?: string | null;
   /** تحديث سعر البيع الافتراضي للمنتج */
   sellPrice?: string | null;
-  /** سبب تجاوز قواعد المخاطر (لو العملية اتعترضت) */
+  /** سبب تجاوز قواعد المخاطر (لو العملية انوقفت) */
   override?: Override;
 }
 
@@ -50,7 +50,7 @@ export async function createBatchTx(tx: Tx, actor: Actor, input: BatchInput) {
   const { quantity, totalCost, unitCost, paid, payable } = batchTotals(input);
   const product = await tx.product.findUnique({ where: { id: input.productId } });
   if (!product || product.deletedAt) throw new UserError("المنتج غير موجود");
-  if (product.kind === "BOX") throw new UserError(`«${product.name}» بوكس — اشتري مكوناته مش البوكس نفسه`);
+  if (product.kind === "BOX") throw new UserError(`«${product.name}» بوكس — اشتري مكوناته مو البوكس نفسه`);
 
   let supplierName = input.supplierName?.trim() || null;
   if (input.supplierId) {
@@ -62,7 +62,7 @@ export async function createBatchTx(tx: Tx, actor: Actor, input: BatchInput) {
 
   let paidFromCode: string | null = null;
   if (paid.gt(0)) {
-    if (!input.paidFromId) throw new UserError("اختار الحساب اللي هتدفع منه");
+    if (!input.paidFromId) throw new UserError("اختار الحساب اللي بتدفع منه");
     const acct = await tx.ledgerAccount.findUnique({ where: { id: input.paidFromId } });
     if (!acct?.isMoney) throw new UserError("حساب الدفع غير صالح");
     await assertSufficient(tx, acct.id, paid, acct.name);
@@ -123,7 +123,7 @@ export async function createBatch(db: Db, actor: Actor, input: BatchInput) {
   });
 }
 
-/** القيمة المتبقية بالظبط لكل دفعة = التكلفة الإجمالية − صافي المخصوم */
+/** القيمة المتبقية بالضبط لكل دفعة = التكلفة الإجمالية − صافي المخصوم */
 async function batchesWithValue(tx: Tx, productId: string) {
   const batches = await tx.inventoryBatch.findMany({
     where: { productId, deletedAt: null, remaining: { gt: 0 } },
@@ -163,7 +163,7 @@ export async function consumeFifo(
       where: { id: a.batchId, remaining: { gte: toDb3(a.quantity) } },
       data: { remaining: { decrement: toDb3(a.quantity) } },
     });
-    if (updated.count !== 1) throw new UserError("المخزون اتغير أثناء العملية، حاول تاني");
+    if (updated.count !== 1) throw new UserError("المخزون تغيّر أثناء العملية، حاول مرة ثانية");
     await tx.batchConsumption.create({
       data: {
         batchId: a.batchId,
@@ -185,7 +185,7 @@ export async function consumeFifo(
 export async function consumeForSale(tx: Tx, product: Pick<Product, "id" | "kind" | "name">, quantity: number, date: Date, orderItemId: string) {
   if (product.kind !== "BOX") return (await consumeFifo(tx, product.id, quantity, date, "SALE", orderItemId)).totalCost;
   const recipe = await tx.recipeLine.findMany({ where: { boxId: product.id } });
-  if (recipe.length === 0) throw new UserError(`البوكس «${product.name}» ملوش مكونات — ضيف الوصفة الأول`);
+  if (recipe.length === 0) throw new UserError(`البوكس «${product.name}» ما له مكونات — أضف الوصفة الأول`);
   let total = ZERO;
   for (const line of recipe) {
     const { totalCost } = await consumeFifo(tx, line.componentId, D(line.quantity).times(quantity), date, "SALE", orderItemId);
@@ -202,7 +202,7 @@ export interface StockLevel {
   value: Decimal;
 }
 
-/** المخزون الفعلي، والمحجوز لطلبات لسه متسلمتش (البوكسات بتحجز من مكوناتها) */
+/** المخزون الفعلي، والمحجوز لطلبات للحين ما تسلّمت (البوكسات بتحجز من مكوناتها) */
 export async function stockLevels(db: Db | Tx, productIds?: string[]): Promise<Map<string, StockLevel>> {
   const where = productIds ? { productId: { in: productIds } } : {};
   const [batches, openItems] = await Promise.all([
@@ -299,7 +299,7 @@ export async function adjustStock(db: Db, actor: Actor, productId: string, count
       });
     } else {
       const last = await tx.inventoryBatch.findFirst({ where: { productId, deletedAt: null }, orderBy: { receivedAt: "desc" } });
-      if (!last) throw new UserError("مفيش دفعة سابقة نعرف منها التكلفة — سجّل شراء دفعة بدل التسوية");
+      if (!last) throw new UserError("ما فيه دفعة سابقة نعرف منها التكلفة — سجّل شراء دفعة بدل التسوية");
       value = round2(D(last.unitCost).times(diff));
       const batch = await tx.inventoryBatch.create({
         data: {

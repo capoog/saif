@@ -29,7 +29,7 @@ export default async function SuppliersPage() {
       />
       {pos.length > 0 && (
         <Card>
-          <CardTitle>أوامر شراء مستنية الاستلام</CardTitle>
+          <CardTitle>أوامر شراء تنتظر الاستلام</CardTitle>
           {pos.map((p) => (
             <Link key={p.id} href={`/purchase-orders/${p.id}`} className="flex justify-between py-2 text-sm">
               <span>
@@ -43,7 +43,7 @@ export default async function SuppliersPage() {
         </Card>
       )}
       {suppliers.length === 0 ? (
-        <Empty>مفيش موردين. المورد المسجل بيتحسبله مستحقاته لوحده.</Empty>
+        <Empty>ما فيه موردين. المورد المسجل يتحسب له مستحقاته لوحده.</Empty>
       ) : (
         suppliers.map((s) => {
           const due = balances.get(s.id);
@@ -58,7 +58,7 @@ export default async function SuppliersPage() {
                     {s.rating && ` · ${"★".repeat(s.rating)}`}
                   </div>
                 </div>
-                {due && due.gt(0) ? <Badge tone="warn">عليك <Money value={due.toString()} className="mx-1" /></Badge> : <span className="text-xs text-muted">مفيش مستحقات</span>}
+                {due && due.gt(0) ? <Badge tone="warn">عليك <Money value={due.toString()} className="mx-1" /></Badge> : <span className="text-xs text-muted">ما فيه مستحقات</span>}
               </Card>
             </Link>
           );

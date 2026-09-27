@@ -59,7 +59,7 @@ export function StockCountForm({ productId, onHand, unit }: { productId: string;
     <form action={action} className="space-y-3">
       <input type="hidden" name="productId" value={productId} />
       <p className="text-sm text-muted">
-        في النظام: <span className="num font-semibold text-fg">{onHand}</span> {unit}. النقص بيتسجل مصروف «فروقات جرد» بتكلفة FIFO.
+        في النظام: <span className="num font-semibold text-fg">{onHand}</span> {unit}. النقص يتسجل مصروف «فروقات جرد» بتكلفة FIFO.
       </p>
       <Field label="الكمية الفعلية">
         <Input name="counted" inputMode="decimal" defaultValue={onHand} className="num" />
@@ -101,7 +101,7 @@ export function RecipeForm({ boxId, lines, materials }: { boxId: string; lines: 
       <button type="button" onClick={() => setRows((rs) => [...rs, { componentId: "", quantity: "1" }])} className="w-full rounded-xl border border-dashed border-border py-2 text-sm text-muted">
         + مكوّن
       </button>
-      <p className="text-xs text-muted">المكونات منتجات عادية بمخزون (تمر بالكيلو، علب، كروت…). لو مكوّن مش موجود، ضيفه من «+ منتج» الأول.</p>
+      <p className="text-xs text-muted">المكونات منتجات عادية بمخزون (تمر بالكيلو، علب، كروت…). لو مكوّن مو موجود، أضفه من «+ منتج» الأول.</p>
       <FormError state={state} />
       <Ok state={state} />
       <SubmitButton>حفظ الوصفة</SubmitButton>

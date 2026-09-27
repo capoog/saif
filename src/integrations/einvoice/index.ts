@@ -1,7 +1,7 @@
 /**
  * واجهة مزوّد الفوترة الإلكترونية (فاتورة / ZATCA).
- * النظام نفسه لا يصدر فواتير ضريبية رسمية — دي بتطلع من مزوّد معتمد.
- * لما تحدد المزوّد (نظام محاسبة أو منصة متجر) نكتب Adapter يطبّق الواجهة دي بس.
+ * النظام نفسه لا يصدر فواتير ضريبية رسمية — هذي تطلع من مزوّد معتمد.
+ * لما تحدد المزوّد (نظام محاسبة أو منصة متجر) نكتب Adapter يطبّق الواجهة هذي بس.
  */
 export interface OfficialInvoice {
   number: string;
@@ -33,10 +33,10 @@ export interface EInvoiceProvider {
 export class ManualEInvoiceProvider implements EInvoiceProvider {
   readonly name = "manual";
   async issueInvoice(): Promise<OfficialInvoice> {
-    throw new Error("الفاتورة الرسمية بتتسجل يدويًا من شاشة الطلب لحد ما يتحدد مزوّد معتمد");
+    throw new Error("الفاتورة الرسمية تتسجل يدويًا من شاشة الطلب لين ما يتحدد مزوّد معتمد");
   }
   async issueCreditNote(): Promise<OfficialInvoice> {
-    throw new Error("إشعار الدائن بيتسجل يدويًا لحد ما يتحدد مزوّد معتمد");
+    throw new Error("إشعار الدائن يتسجل يدويًا لين ما يتحدد مزوّد معتمد");
   }
 }
 

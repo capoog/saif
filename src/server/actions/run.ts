@@ -10,7 +10,7 @@ export type ActionState = {
   error?: string;
   message?: string;
   data?: unknown;
-  /** العملية اتعترضت بقواعد المخاطر — الواجهة تطلب سبب للتجاوز */
+  /** العملية انوقفت بقواعد المخاطر — الواجهة تطلب سبب للتجاوز */
   violations?: { title: string; detail: string }[];
 };
 
@@ -19,22 +19,22 @@ export async function run(fn: () => Promise<ActionState | void>): Promise<Action
   try {
     return (await fn()) ?? { ok: true };
   } catch (e) {
-    if (e instanceof RuleViolationError) return { ok: false, error: "العملية دي عكس قواعد المخاطر", violations: e.violations.map(({ title, detail }) => ({ title, detail })) };
+    if (e instanceof RuleViolationError) return { ok: false, error: "العملية هذي عكس قواعد المخاطر", violations: e.violations.map(({ title, detail }) => ({ title, detail })) };
     if (e instanceof UserError) return { ok: false, error: e.message };
     if (e instanceof z.ZodError) return { ok: false, error: e.issues[0]?.message ?? "بيانات غير صالحة" };
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") return { ok: false, error: "القيمة مكررة" };
     console.error(e);
-    return { ok: false, error: "حصل خطأ غير متوقع. حاول تاني." };
+    return { ok: false, error: "حصل خطأ غير متوقع. حاول مرة ثانية." };
   }
 }
 
-/** تاريخ من input[type=date]: النهارده = الوقت الحالي، يوم سابق = 12 الظهر بتوقيت الرياض. المستقبل مرفوض. */
+/** تاريخ من input[type=date]: اليوم = الوقت الحالي، يوم سابق = 12 الظهر بتوقيت الرياض. المستقبل مرفوض. */
 export function entryDate(key: string | undefined | null): Date {
   const now = new Date();
   const today = riyadhDateKey(now);
   if (!key || key === today) return now;
   if (!/^\d{4}-\d{2}-\d{2}$/.test(key)) throw new UserError("تاريخ غير صالح");
-  if (key > today) throw new UserError("مينفعش تسجل عملية بتاريخ في المستقبل");
+  if (key > today) throw new UserError("ما يصير تسجل عملية بتاريخ في المستقبل");
   return new Date(riyadhStartOfDay(key).getTime() + 12 * 3600000);
 }
 
@@ -75,7 +75,7 @@ export function dayAt(key: string | undefined | null, hour = 9): Date | null {
   return new Date(riyadhStartOfDay(key).getTime() + hour * 3600000);
 }
 
-/** سبب تجاوز القواعد من الفورم (فاضي = مفيش تجاوز) */
+/** سبب تجاوز القواعد من الفورم (فاضي = ما فيه تجاوز) */
 export function overrideOf(fd: FormData): string | null {
   const v = fd.get("override");
   return typeof v === "string" && v.trim() ? v.trim() : null;

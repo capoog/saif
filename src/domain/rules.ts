@@ -18,9 +18,9 @@ export interface ProposedOperation {
   kind: OperationKind;
   /** حجم الصفقة/الشراء */
   amount: DecimalLike;
-  /** النقد اللي هيطلع دلوقتي */
+  /** النقد اللي بيطلع الحين */
   cashOut: DecimalLike;
-  /** المخزون اللي هيدخل بالتكلفة */
+  /** المخزون اللي بيدخل بالتكلفة */
   inventoryIn?: DecimalLike;
   /** تغيّر رأس المال نفسه (مصروف = بالسالب، شراء مخزون = صفر) */
   capitalChange?: DecimalLike;
@@ -70,8 +70,8 @@ export function checkOperation(
   if (op.kind === "CAR_PURCHASE" && capital.lt(s.carDealUnlockCapital)) {
     v.push({
       code: "CAR_MIN_CAPITAL",
-      title: "شراء السيارات لسه مش متاح",
-      detail: `رأس المال ${f(capital)} أقل من ${s.carDealUnlockCapital}. الوساطة بس لحد ما توصل.`,
+      title: "شراء السيارات للحين مو متاح",
+      detail: `رأس المال ${f(capital)} أقل من ${s.carDealUnlockCapital}. الوساطة بس لين ما توصل.`,
     });
   }
 
@@ -94,7 +94,7 @@ export function checkOperation(
     if (after.lt(floor)) {
       v.push({
         code: "LIQUIDITY",
-        title: "السيولة هتنزل تحت الحد الآمن",
+        title: "السيولة بتنزل تحت الحد الآمن",
         detail: `السيولة بعد العملية ${f(after)}، والحد الأدنى ${f(floor)} (${s.minLiquidityPct}% من رأس المال أو ${s.minLiquidityAbs} أيهما أكبر).`,
       });
     }
@@ -109,7 +109,7 @@ export function checkOperation(
     if (after.gt(limit) && !coveredOk) {
       v.push({
         code: "INVENTORY_CAP",
-        title: `المخزون هيعدّي ${s.maxInventoryPct}% من رأس المال`,
+        title: `المخزون بيتعدّى ${s.maxInventoryPct}% من رأس المال`,
         detail: `المخزون بعد الشراء ${f(after)} والحد ${f(limit)}. يوصل ${s.maxInventoryPctCovered}% بس لو الزيادة مغطاة بعرابين (العرابين الحالية ${f(D(cap.customerDeposits))}).`,
       });
     }
@@ -159,7 +159,7 @@ export function adPerformance(spend: DecimalLike, orders: number, revenue: Decim
 
 /**
  * قاعدة "أوقف المنتج": بعد إنفاق adStopMinSpend، لو تكلفة الطلب > adStopCpaMarginPct% من الربح الإجمالي للطلب.
- * لو مفيش طلبات خالص بعد الحد → أوقف.
+ * لو ما فيه طلبات أبد بعد الحد → أوقف.
  */
 export function adStopSignal(
   perf: AdPerformance,
@@ -167,7 +167,7 @@ export function adStopSignal(
   s: Pick<Settings, "adStopMinSpend" | "adStopCpaMarginPct">,
 ): { stop: boolean; reason?: string } {
   if (perf.spend.lt(s.adStopMinSpend)) return { stop: false };
-  if (perf.orders === 0 || perf.cpa === null) return { stop: true, reason: `اتصرف ${perf.spend.toFixed(2)} من غير أي طلب` };
+  if (perf.orders === 0 || perf.cpa === null) return { stop: true, reason: `انصرف ${perf.spend.toFixed(2)} من غير أي طلب` };
   if (grossProfitPerOrder === null) return { stop: false };
   const limit = round2(D(grossProfitPerOrder).times(s.adStopCpaMarginPct).div(100));
   if (perf.cpa.gt(limit)) {
@@ -201,10 +201,10 @@ export function lossSignals(
   const c = D(capital);
   const out: string[] = [];
   if (worstDealProfit !== null && D(worstDealProfit).lt(0) && D(worstDealProfit).neg().gt(pctOf(c, s.dealLossRedPct))) {
-    out.push(`صفقة خسرت ${D(worstDealProfit).neg().toFixed(2)} (أكتر من ${s.dealLossRedPct}% من رأس المال)`);
+    out.push(`صفقة خسرت ${D(worstDealProfit).neg().toFixed(2)} (أكثر من ${s.dealLossRedPct}% من رأس المال)`);
   }
   if (D(monthProfit).lt(0) && D(monthProfit).neg().gt(pctOf(c, s.monthLossRedPct))) {
-    out.push(`الشهر ده خسران ${D(monthProfit).neg().toFixed(2)} (أكتر من ${s.monthLossRedPct}% من رأس المال)`);
+    out.push(`الشهر هذا خسران ${D(monthProfit).neg().toFixed(2)} (أكثر من ${s.monthLossRedPct}% من رأس المال)`);
   }
   return out;
 }

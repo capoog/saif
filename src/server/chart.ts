@@ -9,7 +9,7 @@ export interface ChartAccount {
   isTaxReserve?: boolean;
 }
 
-/** دليل الحسابات الثابت. الحسابات النقدية (isMoney) هي اللي بتظهر في شاشة "الحسابات والنقد". */
+/** دليل الحسابات الثابت. الحسابات النقدية (isMoney) هي اللي تظهر في شاشة "الحسابات والنقد". */
 export const CHART: ChartAccount[] = [
   { code: "BANK", name: "البنك التجاري", type: "ASSET", kind: "CASH", isMoney: true },
   { code: "CASH_BOX", name: "نقد (الصندوق)", type: "ASSET", kind: "CASH", isMoney: true },

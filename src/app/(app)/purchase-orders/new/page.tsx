@@ -22,7 +22,7 @@ export default async function NewPOPage({ searchParams }: { searchParams: Promis
   const shortfalls = needs.filter((n) => n.shortfall.gt(0)).map((n) => ({ productId: n.productId, quantity: n.shortfall.toString() }));
   return (
     <div className="mx-auto max-w-lg">
-      <PageHeader title="أمر شراء جديد" subtitle="عند الاستلام كل بند بيتحول دفعة مخزون، والشحن بيتوزع بنسبة القيمة." />
+      <PageHeader title="أمر شراء جديد" subtitle="عند الاستلام كل بند يتحول دفعة مخزون، والشحن يتوزع بنسبة القيمة." />
       <POForm
         supplierId={supplierId}
         suppliers={suppliers}

@@ -42,7 +42,7 @@ export async function updateSupplierAction(_prev: ActionState, fd: FormData): Pr
     await updateSupplier(prisma, actorOf(user), String(fd.get("id")), toSupplier(fd));
   });
   if (res.ok) revalidatePath("/suppliers");
-  return res.ok ? { ok: true, message: "اتحفظ" } : res;
+  return res.ok ? { ok: true, message: "انحفظ" } : res;
 }
 
 export async function paySupplierAction(_prev: ActionState, fd: FormData): Promise<ActionState> {
@@ -61,7 +61,7 @@ export async function paySupplierAction(_prev: ActionState, fd: FormData): Promi
     });
   });
   if (res.ok) revalidatePath("/", "layout");
-  return res.ok ? { ok: true, message: "اتسجل السداد" } : res;
+  return res.ok ? { ok: true, message: "تسجّل السداد" } : res;
 }
 
 export async function createPurchaseOrderAction(_prev: ActionState, fd: FormData): Promise<ActionState> {
@@ -105,7 +105,7 @@ export async function receivePurchaseOrderAction(_prev: ActionState, fd: FormDat
     await receivePurchaseOrder(prisma, actorOf(user), v.id, { date: entryDate(v.date), paidNow: v.paidNow, paidFromId: v.paidFromId || null, override: overrideOf(fd) });
   });
   if (res.ok) revalidatePath("/", "layout");
-  return res.ok ? { ok: true, message: "اتسلم ودخل المخزون ✓" } : res;
+  return res.ok ? { ok: true, message: "تسلّم ودخل المخزون ✓" } : res;
 }
 
 export async function cancelPurchaseOrderAction(_prev: ActionState, fd: FormData): Promise<ActionState> {

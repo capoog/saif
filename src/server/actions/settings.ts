@@ -33,7 +33,7 @@ export async function updateSettingsAction(_prev: ActionState, fd: FormData): Pr
     await updateSettings(prisma, actorOf(user), patch);
   });
   if (res.ok) revalidatePath("/", "layout");
-  return res.ok ? { ok: true, message: "اتحفظت الإعدادات" } : res;
+  return res.ok ? { ok: true, message: "انحفظت الإعدادات" } : res;
 }
 
 export async function startTotpAction(): Promise<ActionState> {
@@ -52,7 +52,7 @@ export async function confirmTotpAction(_prev: ActionState, fd: FormData): Promi
   await prisma.user.update({ where: { id: user.id }, data: { totpEnabled: true } });
   await prisma.$transaction((tx) => audit(tx, actorOf(user), "enable_2fa", "User", user.id));
   revalidatePath("/settings");
-  return { ok: true, message: "التحقق الثنائي اتفعّل ✔" };
+  return { ok: true, message: "التحقق الثنائي تفعّل ✔" };
 }
 
 export async function disableTotpAction(_prev: ActionState, fd: FormData): Promise<ActionState> {
@@ -62,7 +62,7 @@ export async function disableTotpAction(_prev: ActionState, fd: FormData): Promi
   await prisma.user.update({ where: { id: user.id }, data: { totpEnabled: false, totpSecret: null } });
   await prisma.$transaction((tx) => audit(tx, actorOf(user), "disable_2fa", "User", user.id));
   revalidatePath("/settings");
-  return { ok: true, message: "اتلغى التحقق الثنائي" };
+  return { ok: true, message: "انلغى التحقق الثنائي" };
 }
 
 export async function changePasswordAction(_prev: ActionState, fd: FormData): Promise<ActionState> {
@@ -76,6 +76,6 @@ export async function changePasswordAction(_prev: ActionState, fd: FormData): Pr
     // تسجيل خروج كل الأجهزة التانية
     await prisma.session.deleteMany({ where: { userId: user.id } });
     await prisma.$transaction((tx) => audit(tx, actorOf(user), "change_password", "User", user.id));
-    return { ok: true, message: "اتغيرت كلمة المرور — سجّل دخول تاني" };
+    return { ok: true, message: "تغيّرت كلمة المرور — سجّل دخول مرة ثانية" };
   });
 }

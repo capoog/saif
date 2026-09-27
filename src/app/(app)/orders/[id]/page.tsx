@@ -29,7 +29,7 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
 
   return (
     <div className="mx-auto max-w-2xl space-y-4">
-      {created && <Alert tone="ok" title="اتسجل الطلب ✔" />}
+      {created && <Alert tone="ok" title="تسجّل الطلب ✔" />}
       <PageHeader
         title={`طلب #${order.number}`}
         subtitle={<>{dateTime(order.date)} · {order.channel} · {order.engine.name}{order.customer && ` · ${order.customer.name}`}{order.customer?.phone && ` (${order.customer.phone})`}</>}
@@ -68,7 +68,7 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
         </div>
         {closed && paid > 0 && (
           <div className="mt-3">
-            <Alert tone="warn" title={`مبلغ مستحق للعميل: ${paid.toFixed(2)}`}>متسجل كالتزام لحد ما ترجّعه.</Alert>
+            <Alert tone="warn" title={`مبلغ مستحق للعميل: ${paid.toFixed(2)}`}>مسجّل كالتزام لين ما ترجّعه.</Alert>
           </div>
         )}
       </Card>
@@ -100,7 +100,7 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
 
       <Card>
         <CardTitle>الفاتورة الضريبية الرسمية</CardTitle>
-        <p className="mb-3 text-xs text-muted">الفاتورة الرسمية بتطلع من نظام الفوترة المعتمد. سجّل رقمها ورابطها هنا.</p>
+        <p className="mb-3 text-xs text-muted">الفاتورة الرسمية تطلع من نظام الفوترة المعتمد. سجّل رقمها ورابطها هنا.</p>
         <InvoiceForm id={order.id} no={order.officialInvoiceNo ?? ""} url={order.officialInvoiceUrl ?? ""} />
       </Card>
       {order.contractId && (

@@ -39,8 +39,8 @@ export default async function ContractPage({ params }: { params: Promise<{ id: s
         <Stat label="المتبقي" value={<Money value={d.due.toString()} />} />
       </div>
       {!d.depositReceived && k.status === "ACTIVE" && (
-        <Alert tone="warn" title="العربون لسه موصلش">
-          العقد مش بيتحسب في عدّاد رمضان غير بعد العربون. ابدأ التجهيز بعد ما يوصل.
+        <Alert tone="warn" title="العربون للحين ما وصل">
+          العقد ما يتحسب في عدّاد رمضان غير بعد العربون. ابدأ التجهيز بعد ما يوصل.
         </Alert>
       )}
 
@@ -64,7 +64,7 @@ export default async function ContractPage({ params }: { params: Promise<{ id: s
             </Link>
           ))}
         </div>
-        <p className="mt-2 text-xs text-muted">التسليم والتحصيل لكل دفعة من صفحة الطلب بتاعها. التكلفة بتتخصم من مكونات البوكس بـ FIFO وقت التسليم.</p>
+        <p className="mt-2 text-xs text-muted">التسليم والتحصيل لكل دفعة من صفحة الطلب حقها. التكلفة تتخصم من مكونات البوكس بـ FIFO وقت التسليم.</p>
       </Card>
 
       {k.status === "ACTIVE" && d.due.gt(0) && (

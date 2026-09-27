@@ -162,4 +162,8 @@ describe("الهدف والحالة", () => {
     expect(s.maxDealPct).toBe(30);
     expect(s.vatRegistered).toBe(false);
   });
+  it("اسم المنشأة الفاضي يرجع للافتراضي", () => {
+    expect(mergeSettings({ businessName: "" }).businessName).toBe("الغباشي للمقاولات والتجارة");
+    expect(mergeSettings({ businessName: "اسم ثاني" }).businessName).toBe("اسم ثاني");
+  });
 });

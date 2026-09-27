@@ -30,7 +30,7 @@ export interface SeedOptions {
   openingBalance?: string;
 }
 
-/** بيانات أولية — آمنة للتشغيل أكتر من مرة */
+/** بيانات أولية — آمنة للتشغيل أكثر من مرة */
 export async function seedBase(db: Db, opts: SeedOptions = {}) {
   for (const [i, e] of ENGINES.entries()) {
     await db.engine.upsert({ where: { code: e.code }, create: { code: e.code, name: e.name, sortOrder: i }, update: { name: e.name, sortOrder: i } });
@@ -57,7 +57,7 @@ export async function seedBase(db: Db, opts: SeedOptions = {}) {
     await db.product.upsert({
       where: { number: p.number },
       create: { number: p.number, status: STATUS_MAP[p.status] ?? "LATER", ...data },
-      update: data, // الحالة متتغيرش لو المنتج موجود (ممكن تكون اتعدلت)
+      update: data, // الحالة ما تتغير لو المنتج موجود (ممكن تكون تعدّلت)
     });
   }
 

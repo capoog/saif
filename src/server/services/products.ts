@@ -19,7 +19,7 @@ export async function updateProduct(db: Db, actor: Actor, id: string, patch: Pro
     const before = await tx.product.findUniqueOrThrow({ where: { id } });
     if (patch.kind && patch.kind !== before.kind) {
       if (patch.kind === "BOX" && (await tx.inventoryBatch.count({ where: { productId: id } })) > 0) {
-        throw new UserError("المنتج ده ليه مخزون — مينفعش يتحول بوكس");
+        throw new UserError("المنتج هذا له مخزون — ما يصير يتحول بوكس");
       }
       if (patch.kind === "GOODS" && (await tx.recipeLine.count({ where: { boxId: id } })) > 0) {
         throw new UserError("امسح مكونات البوكس الأول");

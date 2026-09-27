@@ -33,7 +33,7 @@ async function moneyAccount(tx: Tx, id: string) {
   return a;
 }
 
-/** يمنع إن حساب نقدي يبقى بالسالب */
+/** يمنع إن حساب نقدي يصير بالسالب */
 export async function assertSufficient(tx: Tx, accountId: string, amount: ReturnType<typeof D>, name: string) {
   const bal = await accountBalance(tx, accountId);
   if (bal.lt(amount)) throw new UserError(`رصيد «${name}» غير كافٍ (المتاح ${bal.toFixed(2)})`);

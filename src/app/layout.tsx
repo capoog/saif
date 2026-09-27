@@ -7,7 +7,7 @@ import "./globals.css";
 const font = IBM_Plex_Sans_Arabic({ subsets: ["arabic", "latin"], weight: ["400", "500", "600", "700"], variable: "--font-arabic" });
 
 export const metadata: Metadata = {
-  title: "كشف رأس المال",
+  title: "الغباشي للمقاولات والتجارة",
   description: "نظام إدارة التجارة — 20,000 إلى 1,000,000",
   robots: { index: false, follow: false },
 };

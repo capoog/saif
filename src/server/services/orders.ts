@@ -218,7 +218,7 @@ export async function addPayment(db: Db, actor: Actor, orderId: string, input: P
  * التسليم = لحظة الاعتراف بالإيراد:
  * مدين العملاء (الإجمالي) / دائن المبيعات (بدون ضريبة) / دائن الضريبة المحصّلة
  * مدين تكلفة البضاعة / دائن المخزون (FIFO)
- * العربون المستلم قبل كده بيتقفل تلقائيًا لأنه على نفس حساب العملاء للطلب.
+ * العربون المستلم قبل كذا يتقفل تلقائيًا لأنه على نفس حساب العملاء للطلب.
  */
 async function deliverTx(tx: Tx, actor: Actor, orderId: string, date: Date) {
   const order = await tx.order.findUniqueOrThrow({ where: { id: orderId }, include: { items: { include: { product: true } } } });
@@ -252,7 +252,7 @@ async function returnTx(tx: Tx, actor: Actor, orderId: string, date: Date) {
   const delivery = await tx.journalEntry.findFirst({
     where: { orderId, sourceType: "ORDER_DELIVERY", reversalOfId: null, reversedBy: { is: null } },
   });
-  if (!delivery) throw new UserError("مفيش قيد تسليم للطلب ده");
+  if (!delivery) throw new UserError("ما فيه قيد تسليم للطلب هذا");
   await reverseEntry(tx, delivery.id, date, `مرتجع طلب #${order.number}`, actor.userId);
   for (const item of order.items) {
     for (const c of item.consumptions.filter((c) => c.reason === "SALE")) {

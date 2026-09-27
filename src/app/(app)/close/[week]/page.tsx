@@ -82,7 +82,7 @@ export default async function SnapshotPage({ params }: { params: Promise<{ week:
           <p className="text-sm text-muted">المقترح: {snap.suggestedDecision}</p>
           {snap.actualDecision && <p className="mt-2 text-sm font-medium">الفعلي: {snap.actualDecision}</p>}
         </Card>
-        <p className="text-center text-xs text-muted">اتقفل {dateTime(snap.createdAt)} · الهدف تشغيلي وغير مضمون</p>
+        <p className="text-center text-xs text-muted">انقفل {dateTime(snap.createdAt)} · الهدف تشغيلي وغير مضمون</p>
       </div>
       <Card className="no-print">
         <CardTitle>تعديل القرار الفعلي (المالك + سبب)</CardTitle>

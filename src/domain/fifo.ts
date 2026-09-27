@@ -10,7 +10,7 @@ export interface FifoBatch {
   receivedAt: Date;
   remaining: DecimalLike;
   unitCost: DecimalLike;
-  /** القيمة المتبقية بالظبط (التكلفة الإجمالية − المخصوم). لو اتحددت، آخر وحدات الدفعة تاخدها كاملة. */
+  /** القيمة المتبقية بالضبط (التكلفة الإجمالية − المخصوم). لو تحددت، آخر وحدات الدفعة تاخذها كاملة. */
   remainingValue?: DecimalLike;
 }
 

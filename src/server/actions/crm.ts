@@ -38,7 +38,7 @@ export async function updateCustomerAction(_prev: ActionState, fd: FormData): Pr
     await updateCustomer(prisma, actorOf(user), String(fd.get("id")), customerSchema.parse(formObject(fd)));
   });
   if (res.ok) revalidatePath("/customers");
-  return res.ok ? { ok: true, message: "اتحفظ" } : res;
+  return res.ok ? { ok: true, message: "انحفظ" } : res;
 }
 
 export async function importCustomersAction(_prev: ActionState, fd: FormData): Promise<ActionState> {
@@ -47,7 +47,7 @@ export async function importCustomersAction(_prev: ActionState, fd: FormData): P
     const csv = String(fd.get("csv") ?? "");
     const r = await importCustomers(prisma, actorOf(user), csv);
     revalidatePath("/customers");
-    return { ok: true, message: `اتضاف ${r.created} عميل. متكرر (الجوال موجود): ${r.duplicates}. سطور من غير اسم: ${r.skipped}.` };
+    return { ok: true, message: `انضاف ${r.created} عميل. متكرر (الجوال موجود): ${r.duplicates}. سطور من غير اسم: ${r.skipped}.` };
   });
 }
 
@@ -103,7 +103,7 @@ export async function followUpAction(_prev: ActionState, fd: FormData): Promise<
     else await setFollowUp(prisma, actorOf(user), id, dayAt(String(fd.get("followUp") ?? "")));
   });
   if (res.ok) revalidatePath("/crm");
-  return res.ok ? { ok: true, message: "اتسجل" } : res;
+  return res.ok ? { ok: true, message: "تسجّل" } : res;
 }
 
 export async function logActivityAction(_prev: ActionState, fd: FormData): Promise<ActionState> {

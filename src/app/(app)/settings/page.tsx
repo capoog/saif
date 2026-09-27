@@ -15,7 +15,7 @@ export default async function SettingsPage() {
   ]);
   return (
     <div className="space-y-4">
-      <PageHeader title="الإعدادات" subtitle="كل حدود القواعد قابلة للتعديل هنا — مفيش أرقام ثابتة في الكود." />
+      <PageHeader title="الإعدادات" subtitle="كل حدود القواعد قابلة للتعديل هنا — ما فيه أرقام ثابتة في الكود." />
       <SettingsForm settings={settings} />
       <div className="grid gap-4 md:grid-cols-2">
         <Card>

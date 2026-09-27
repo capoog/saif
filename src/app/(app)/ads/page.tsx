@@ -18,7 +18,7 @@ export default async function AdsPage() {
   const accounts = balances.filter((b) => b.isMoney && !b.isTaxReserve).map((b) => ({ id: b.id, name: b.name, code: b.code }));
   return (
     <div className="space-y-4">
-      <PageHeader title="الإعلانات" subtitle={`الإنفاق بيتسجل مصروف تسويق. القاعدة: بعد ${s.adStopMinSpend} ريال على منتج، لو تكلفة الطلب > ${s.adStopCpaMarginPct}% من ربحه → أوقف.`} />
+      <PageHeader title="الإعلانات" subtitle={`الإنفاق يتسجل مصروف تسويق. القاعدة: بعد ${s.adStopMinSpend} ريال على منتج، لو تكلفة الطلب > ${s.adStopCpaMarginPct}% من ربحه → أوقف.`} />
       <div className="grid grid-cols-3 gap-2">
         <Stat label="الإنفاق" value={<Money value={o.total.spend.toString()} />} />
         <Stat label="تكلفة الطلب CPA" value={o.total.cpa ? <Money value={o.total.cpa.toString()} /> : "—"} sub={`${o.total.orders} طلب`} />
@@ -49,7 +49,7 @@ export default async function AdsPage() {
       <div className="space-y-2">
         <h2 className="font-semibold">الحملات</h2>
         {o.rows.length === 0 ? (
-          <Empty>مفيش حملات. ضيف أول حملة تحت.</Empty>
+          <Empty>ما فيه حملات. أضف أول حملة تحت.</Empty>
         ) : (
           o.rows.map((c) => (
             <Card key={c.id} className={c.active ? "" : "opacity-60"}>

@@ -31,7 +31,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
         <Input name="q" defaultValue={q} placeholder="بحث بالاسم أو الجوال أو القطاع" />
       </form>
       {customers.length === 0 ? (
-        <Empty>مفيش عملاء.</Empty>
+        <Empty>ما فيه عملاء.</Empty>
       ) : (
         <div className="space-y-2">
           {customers.map((c) => (

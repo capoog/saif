@@ -27,7 +27,7 @@ export interface OrderTotals {
 /**
  * حساب إجماليات الطلب. الضريبة المحصّلة ليست إيرادًا:
  * netRevenue = total − vatAmount، والضريبة تروح لحساب منفصل.
- * لو المنشأة مش مسجلة في الضريبة → ضريبة = 0.
+ * لو المنشأة مو مسجلة في الضريبة → ضريبة = 0.
  */
 export function computeOrderTotals(input: OrderTotalsInput): OrderTotals {
   const subtotal = round2(sum(input.items.map((i) => D(i.unitPrice).times(i.quantity))));

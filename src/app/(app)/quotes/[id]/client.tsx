@@ -59,7 +59,7 @@ export function QuoteActions({ id, label, status, phone, total }: { id: string; 
       </div>
       {status !== "ACCEPTED" && (
         <div className="flex flex-wrap gap-2">
-          {status !== "SENT" && status_("SENT", "اتبعت للعميل ✓")}
+          {status !== "SENT" && status_("SENT", "انرسل للعميل ✓")}
           {status !== "REJECTED" && status_("REJECTED", "العميل رفض", "ghost")}
         </div>
       )}
@@ -108,7 +108,7 @@ export function ContractForm({ quoteId, items }: { quoteId: string; items: { des
         </button>
         {mismatch && <p className="text-xs text-danger">مجموع الدفعات لازم يساوي كمية العرض: {items.map((it, i) => `${it.description} ${planned[i]}/${it.quantity}`).join("، ")}</p>}
       </div>
-      <p className="text-xs text-muted">كل دفعة بتتسجل طلب مؤكد. العربون بتسجله من صفحة العقد بعد كده، وبيفضل التزام لحد التسليم.</p>
+      <p className="text-xs text-muted">كل دفعة تتسجل طلب مؤكد. العربون بتسجله من صفحة العقد بعد كذا، وبيفضل التزام لين التسليم.</p>
       <OverrideField state={state} />
       <FormError state={state} />
       <SubmitButton disabled={mismatch}>إنشاء العقد</SubmitButton>

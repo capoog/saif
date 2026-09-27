@@ -67,7 +67,7 @@ export default async function Dashboard() {
       <div className="grid grid-cols-2 gap-2">
         <Link href="/crm" className="block">
           <Card className="h-full p-3 hover:border-primary/50">
-            <div className="text-xs text-muted">تواصلات النهارده</div>
+            <div className="text-xs text-muted">تواصلات اليوم</div>
             <div className="mt-1 flex items-baseline justify-between">
               <span className={cn("num text-2xl font-bold", d.crm.activitiesToday >= d.settings.dailyOutreachMin ? "text-ok" : "text-warn")}>{d.crm.activitiesToday}</span>
               <span className="num text-xs text-muted">/ {d.settings.dailyOutreachMin}–{d.settings.dailyOutreachMax}</span>

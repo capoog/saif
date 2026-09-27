@@ -32,7 +32,7 @@ export interface EngineWeekResult {
   name: string;
   profit: Decimal;
   capitalUsed: Decimal;
-  /** العائد % أو null لو مفيش رأس مال مستخدم */
+  /** العائد % أو null لو ما فيه رأس مال مستخدم */
   returnPct: Decimal | null;
 }
 
@@ -44,8 +44,8 @@ export interface DecisionContext {
 }
 
 /**
- * ترتيب المحركات حسب العائد على رأس المال. المحركات اللي مفيهاش رأس مال مستخدم
- * (زي الوساطة) بتترتب بعدهم بالربح، لأن توجيه فائض رأس المال ليها ملوش معنى.
+ * ترتيب المحركات حسب العائد على رأس المال. المحركات اللي ما فيها رأس مال مستخدم
+ * (زي الوساطة) بتترتب بعدهم بالربح، لأن توجيه فائض رأس المال لها ما له معنى.
  */
 export function rankEngines(engines: EngineWeekResult[]): EngineWeekResult[] {
   const withCap = engines.filter((e) => e.returnPct !== null).sort((a, b) => b.returnPct!.comparedTo(a.returnPct!));

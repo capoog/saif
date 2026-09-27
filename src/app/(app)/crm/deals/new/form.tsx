@@ -12,7 +12,7 @@ export function DealForm({ customerId, customers, engines }: { customerId?: stri
   if (customers.length === 0)
     return (
       <p className="text-sm">
-        مفيش عملاء لسه. <Link href="/customers/new?next=deal" className="text-primary">أضف عميل الأول</Link>
+        ما فيه عملاء للحين. <Link href="/customers/new?next=deal" className="text-primary">أضف عميل الأول</Link>
       </p>
     );
   return (

@@ -29,7 +29,7 @@ export function TransactionForm(p: Props) {
   const [type, setType] = useState<TxType>(p.initialType);
   const [state, action] = useActionState<ActionState, FormData>(createTransactionAction, {});
   const formRef = useRef<HTMLFormElement>(null);
-  // "حفظ + التالي": نفضّي الفورم بعد النجاح عشان الإدخال المتتالي يبقى سريع
+  // "حفظ + التالي": نفضّي الفورم بعد النجاح عشان الإدخال المتتالي يصير سريع
   useEffect(() => {
     if (state.ok && state.message) resetForm(formRef.current);
   }, [state]);

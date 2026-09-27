@@ -40,7 +40,7 @@ export function CloseWizard({ week, existing, accounts, products, draft }: Props
   return (
     <div className="space-y-4">
       {existing && (
-        <Alert tone="info" title={`أسبوع ${week} متقفل بالفعل`}>
+        <Alert tone="info" title={`أسبوع ${week} مقفل بالفعل`}>
           <Link href={`/close/${week}`} className="underline">اعرض الـ Snapshot</Link> — إعادة الإغلاق بتحتاج سبب وبتتسجل في سجل التعديلات.
         </Alert>
       )}
@@ -54,7 +54,7 @@ export function CloseWizard({ week, existing, accounts, products, draft }: Props
 
       {step === 0 && (
         <Card>
-          <p className="mb-3 text-sm text-muted">اكتب الرصيد الفعلي لكل حساب (من تطبيق البنك / عدّ الصندوق). أي فرق بيتسجل «فروقات مطابقة».</p>
+          <p className="mb-3 text-sm text-muted">اكتب الرصيد الفعلي لكل حساب (من تطبيق البنك / عدّ الصندوق). أي فرق يتسجل «فروقات مطابقة».</p>
           <form action={recAction} className="space-y-3">
             {accounts.map((a) => (
               <Field key={a.id} label={a.name} hint={<>في النظام: <span className="num">{a.balance}</span></>}>
@@ -74,10 +74,10 @@ export function CloseWizard({ week, existing, accounts, products, draft }: Props
       {step === 1 && (
         <Card>
           {products.length === 0 ? (
-            <p className="text-sm text-muted">مفيش مخزون حاليًا.</p>
+            <p className="text-sm text-muted">ما فيه مخزون حاليًا.</p>
           ) : (
             <form action={cntAction} className="space-y-3">
-              <p className="text-sm text-muted">عدّل الكمية لو الفعلي مختلف. النقص بيتخصم FIFO كمصروف «فروقات جرد».</p>
+              <p className="text-sm text-muted">عدّل الكمية لو الفعلي مختلف. النقص يتخصم FIFO كمصروف «فروقات جرد».</p>
               {products.map((p) => (
                 <div key={p.id} className="flex items-center justify-between gap-3">
                   <span className="text-sm">{p.name}</span>
@@ -107,7 +107,7 @@ export function CloseWizard({ week, existing, accounts, products, draft }: Props
               <Money value={draft.capital} />
             </div>
           </div>
-          <p className="text-xs text-muted">مخصص زكاة الشهر بيتحسب تلقائيًا عند الحفظ لو لسه متحسبش (تقديري).</p>
+          <p className="text-xs text-muted">مخصص زكاة الشهر يتحسب تلقائيًا عند الحفظ لو للحين ما انحسب (تقديري).</p>
           <Button type="button" variant="ghost" className="mt-2" onClick={() => setStep(3)}>التالي ←</Button>
         </Card>
       )}
@@ -137,7 +137,7 @@ export function CloseWizard({ week, existing, accounts, products, draft }: Props
       {step === 4 && (
         <Card>
           <form action={closeAction} className="space-y-3">
-            <Field label="القرار الفعلي" hint="هيتحفظ مع الـ Snapshot">
+            <Field label="القرار الفعلي" hint="بيتحفظ مع الـ Snapshot">
               <Textarea name="actualDecision" defaultValue={draft.suggested} rows={4} />
             </Field>
             <input type="hidden" name="reconciliation" value={JSON.stringify({ accounts: recState.data ?? null, stock: cntState.message ?? null })} />

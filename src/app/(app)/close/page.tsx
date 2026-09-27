@@ -28,7 +28,7 @@ export default async function ClosePage() {
 
   return (
     <div className="space-y-4">
-      <PageHeader title={`الإغلاق الأسبوعي — أسبوع ${week}`} subtitle={<>اليوم <span className="num">{planDay(now)}</span>{isThursday ? " · النهارده الخميس، يوم الإغلاق" : " · الإغلاق المعتاد يوم الخميس"}</>} />
+      <PageHeader title={`الإغلاق الأسبوعي — أسبوع ${week}`} subtitle={<>اليوم <span className="num">{planDay(now)}</span>{isThursday ? " · اليوم الخميس، يوم الإغلاق" : " · الإغلاق المعتاد يوم الخميس"}</>} />
       <CloseWizard
         week={week}
         existing={existing ? { week: existing.week } : null}

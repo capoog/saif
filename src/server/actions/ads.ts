@@ -14,7 +14,7 @@ export async function createCampaignAction(_prev: ActionState, fd: FormData): Pr
     await createCampaign(prisma, actorOf(user), { ...v, productId: v.productId || null, engineId: v.engineId || null });
   });
   if (res.ok) revalidatePath("/ads");
-  return res.ok ? { ok: true, message: "اتضافت الحملة" } : res;
+  return res.ok ? { ok: true, message: "انضافت الحملة" } : res;
 }
 
 export async function addSpendAction(_prev: ActionState, fd: FormData): Promise<ActionState> {
@@ -33,7 +33,7 @@ export async function addSpendAction(_prev: ActionState, fd: FormData): Promise<
     await addAdSpend(prisma, actorOf(user), { ...v, date: entryDate(v.date), override: overrideOf(fd) });
   });
   if (res.ok) revalidatePath("/", "layout");
-  return res.ok ? { ok: true, message: "اتسجل ✓" } : res;
+  return res.ok ? { ok: true, message: "تسجّل ✓" } : res;
 }
 
 export async function toggleCampaignAction(_prev: ActionState, fd: FormData): Promise<ActionState> {

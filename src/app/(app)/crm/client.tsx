@@ -83,7 +83,7 @@ export function DealStageForm({ id, stage }: { id: string; stage: string }) {
       </Select>
       {value === "LOST" && stage !== "LOST" && (
         <div className="flex gap-1.5">
-          <Input name="lostReason" required placeholder="ليه خسرناه؟" className="h-9 text-sm" />
+          <Input name="lostReason" required placeholder="ليش خسرناه؟" className="h-9 text-sm" />
           <SubmitButton size="sm" variant="danger">تأكيد</SubmitButton>
         </div>
       )}

@@ -58,7 +58,7 @@ export async function createCustomer(db: Db, actor: Actor, input: CustomerInput)
   return db.$transaction(async (tx) => {
     if (data.phone) {
       const dup = await tx.customer.findFirst({ where: { phone: data.phone, deletedAt: null } });
-      if (dup) throw new UserError(`الجوال ده مسجل لعميل تاني: ${dup.name}`);
+      if (dup) throw new UserError(`الجوال هذا مسجل لعميل ثاني: ${dup.name}`);
     }
     const c = await tx.customer.create({ data });
     await audit(tx, actor, "create", "Customer", c.id, { after: c });
@@ -72,7 +72,7 @@ export async function updateCustomer(db: Db, actor: Actor, id: string, input: Cu
     const before = await tx.customer.findUniqueOrThrow({ where: { id } });
     if (data.phone) {
       const dup = await tx.customer.findFirst({ where: { phone: data.phone, deletedAt: null, id: { not: id } } });
-      if (dup) throw new UserError(`الجوال ده مسجل لعميل تاني: ${dup.name}`);
+      if (dup) throw new UserError(`الجوال هذا مسجل لعميل ثاني: ${dup.name}`);
     }
     const c = await tx.customer.update({ where: { id }, data });
     await audit(tx, actor, "update", "Customer", id, { before, after: c });
@@ -83,7 +83,7 @@ export async function updateCustomer(db: Db, actor: Actor, id: string, input: Cu
 /** استيراد CSV: العملاء اللي جوالهم موجود بيتخطّوا */
 export async function importCustomers(db: Db, actor: Actor, csv: string) {
   const { customers, skipped } = csvToCustomers(csv);
-  if (customers.length === 0) throw new UserError("مفيش عملاء في الملف — أول عمود لازم يكون الاسم");
+  if (customers.length === 0) throw new UserError("ما فيه عملاء في الملف — أول عمود لازم يكون الاسم");
   if (customers.length > 2000) throw new UserError("الحد الأقصى 2000 عميل في المرة");
   return db.$transaction(
     async (tx) => {
@@ -154,7 +154,7 @@ export async function moveDeal(db: Db, actor: Actor, id: string, stage: DealStag
   return db.$transaction((tx) => moveDealTx(tx, actor, id, stage, lostReason));
 }
 
-/** يقدّم الصفقة لمرحلة معينة لو هي لسه قبلها (مايرجعهاش لورا) */
+/** يقدّم الصفقة لمرحلة معينة لو هي للحين قبلها (ما يرجّعها لورا) */
 export async function advanceDealTx(tx: Tx, actor: Actor, id: string | null | undefined, stage: DealStage) {
   if (!id) return;
   const d = await tx.deal.findUnique({ where: { id } });

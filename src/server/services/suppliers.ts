@@ -84,7 +84,7 @@ export async function createPurchaseOrder(db: Db, actor: Actor, input: PurchaseO
   if (D(input.extraCosts ?? 0).lt(0)) throw new UserError("التكاليف الإضافية لا تكون سالبة");
   return db.$transaction(async (tx) => {
     const products = await tx.product.findMany({ where: { id: { in: input.items.map((i) => i.productId) } } });
-    if (products.some((p) => p.kind === "BOX")) throw new UserError("البوكس ميتشراش — اشتري مكوناته");
+    if (products.some((p) => p.kind === "BOX")) throw new UserError("البوكس ما ينشرى — اشتري مكوناته");
     const po = await tx.purchaseOrder.create({
       data: {
         supplierId: input.supplierId,
@@ -102,7 +102,7 @@ export async function createPurchaseOrder(db: Db, actor: Actor, input: PurchaseO
 }
 
 /**
- * استلام أمر الشراء: كل بند يتحول دفعة مخزون (الشحن والتكاليف الإضافية بتتوزع بنسبة قيمة البنود)،
+ * استلام أمر الشراء: كل بند يتحول دفعة مخزون (الشحن والتكاليف الإضافية تتوزع بنسبة قيمة البنود)،
  * القيمة كلها تتسجل مستحقة للمورد، والمدفوع الآن يتسجل سداد للمورد.
  */
 export async function receivePurchaseOrder(
@@ -113,7 +113,7 @@ export async function receivePurchaseOrder(
 ) {
   return db.$transaction(async (tx) => {
     const po = await tx.purchaseOrder.findUniqueOrThrow({ where: { id }, include: { items: true, supplier: true } });
-    if (po.status === "RECEIVED") throw new UserError("الأمر ده اتسلم قبل كده");
+    if (po.status === "RECEIVED") throw new UserError("الأمر هذا تسلّم قبل كذا");
     if (po.status === "CANCELLED") throw new UserError("الأمر ملغي");
     const t = poTotals(po.items, po.extraCosts);
     const paidNow = round2(D(opts.paidNow ?? 0));
@@ -127,7 +127,7 @@ export async function receivePurchaseOrder(
       { entity: "PurchaseOrder", entityId: po.id },
     );
 
-    // توزيع التكاليف الإضافية بنسبة القيمة، وآخر بند ياخد الباقي
+    // توزيع التكاليف الإضافية بنسبة القيمة، وآخر بند ياخذ الباقي
     let extraLeft = t.extra;
     for (const [idx, item] of po.items.entries()) {
       const value = D(item.quantity).times(D(item.unitPrice));
@@ -146,7 +146,7 @@ export async function receivePurchaseOrder(
       });
     }
     if (paidNow.gt(0)) {
-      if (!opts.paidFromId) throw new UserError("اختار الحساب اللي هتدفع منه");
+      if (!opts.paidFromId) throw new UserError("اختار الحساب اللي بتدفع منه");
       await createTransactionTx(tx, actor, {
         type: "WITHDRAWAL",
         date: opts.date,
@@ -167,7 +167,7 @@ export async function receivePurchaseOrder(
 export async function cancelPurchaseOrder(db: Db, actor: Actor, id: string) {
   return db.$transaction(async (tx) => {
     const po = await tx.purchaseOrder.findUniqueOrThrow({ where: { id } });
-    if (po.status === "RECEIVED") throw new UserError("الأمر اتسلم — مينفعش يتلغي");
+    if (po.status === "RECEIVED") throw new UserError("الأمر تسلّم — ما يصير يتلغي");
     const saved = await tx.purchaseOrder.update({ where: { id }, data: { status: "CANCELLED" } });
     await audit(tx, actor, "cancel", "PurchaseOrder", id, { before: { status: po.status } });
     return saved;

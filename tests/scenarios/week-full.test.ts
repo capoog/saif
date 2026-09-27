@@ -107,7 +107,7 @@ describe("سيناريو أسبوع كامل", () => {
   });
 
   it("الـ Snapshot مقفول: إعادة الإغلاق مرفوضة إلا للمالك مع سبب", async () => {
-    await expect(closeWeek(db, actor, { asOf: at("2026-10-01", 21) })).rejects.toThrow(/متقفل/);
+    await expect(closeWeek(db, actor, { asOf: at("2026-10-01", 21) })).rejects.toThrow(/مقفل/);
     await expect(closeWeek(db, actor, { asOf: at("2026-10-01", 21), overwrite: true })).rejects.toThrow(/سبب/);
     await expect(closeWeek(db, { userId: null, role: "sales" }, { asOf: at("2026-10-01", 21), overwrite: true, reason: "x" })).rejects.toThrow();
     const again = await closeWeek(db, actor, { asOf: at("2026-10-01", 21), overwrite: true, reason: "تصحيح" });

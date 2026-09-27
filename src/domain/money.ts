@@ -6,7 +6,7 @@ export { Decimal };
 export type Money = Decimal;
 export type DecimalLike = Decimal | string | number | { toString(): string };
 
-/** يحوّل أي قيمة (بما فيها Prisma.Decimal) لـ Decimal. متستخدمش Number للفلوس. */
+/** يحوّل أي قيمة (بما فيها Prisma.Decimal) لـ Decimal. لا تستخدم Number للفلوس. */
 export function D(v: DecimalLike | null | undefined): Decimal {
   if (v === null || v === undefined) return new Decimal(0);
   if (v instanceof Decimal) return v;

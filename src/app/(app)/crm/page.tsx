@@ -45,18 +45,18 @@ export default async function CrmPage() {
       />
 
       <div id="log" className="grid gap-2 md:grid-cols-2">
-        <Meter value={d.activitiesToday} min={s.dailyOutreachMin} max={s.dailyOutreachMax} label="تواصلات النهارده">
+        <Meter value={d.activitiesToday} min={s.dailyOutreachMin} max={s.dailyOutreachMax} label="تواصلات اليوم">
           <LogButtons />
         </Meter>
-        <Meter value={d.quotesToday} min={s.dailyQuotesMin} max={s.dailyQuotesMax} label="عروض أسعار النهارده">
+        <Meter value={d.quotesToday} min={s.dailyQuotesMin} max={s.dailyQuotesMax} label="عروض أسعار اليوم">
           <ButtonLink href="/quotes/new" size="sm" variant="secondary" className="w-full">+ عرض سعر</ButtonLink>
         </Meter>
       </div>
 
       <Card>
-        <CardTitle>متابعات النهارده ({d.followUps.length})</CardTitle>
+        <CardTitle>متابعات اليوم ({d.followUps.length})</CardTitle>
         {d.followUps.length === 0 ? (
-          <p className="text-sm text-muted">مفيش متابعات مستحقة 👌</p>
+          <p className="text-sm text-muted">ما فيه متابعات مستحقة 👌</p>
         ) : (
           <div className="divide-y divide-border">
             {d.followUps.map((f) => (
@@ -87,7 +87,7 @@ export default async function CrmPage() {
         <h2 className="mb-2 font-semibold">لوحة الصفقات</h2>
         {d.deals.length === 0 ? (
           <Empty>
-            مفيش صفقات لسه. ابدأ بـ <Link href="/crm/deals/new" className="text-primary">+ صفقة</Link> أو <Link href="/customers/import" className="text-primary">استورد عملاء</Link>.
+            ما فيه صفقات للحين. ابدأ بـ <Link href="/crm/deals/new" className="text-primary">+ صفقة</Link> أو <Link href="/customers/import" className="text-primary">استورد عملاء</Link>.
           </Empty>
         ) : (
           <div className="-mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-2">

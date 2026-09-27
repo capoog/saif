@@ -23,8 +23,8 @@ export interface DashAlert {
 }
 
 /**
- * كل تنبيهات القسم 5 (غير اللي بتعترض العمليات قبل الحفظ — دي في server/rules.ts).
- * بتتحسب لحظيًا من البيانات، مفيش حاجة بتتخزن.
+ * كل تنبيهات القسم 5 (غير اللي بتعترض العمليات قبل الحفظ — هذي في server/rules.ts).
+ * تتحسب لحظيًا من البيانات، ما فيه شي يتخزن.
  */
 export async function alerts(db: Db, now: Date, settings: Settings, cap: CapitalBreakdown): Promise<DashAlert[]> {
   const out: DashAlert[] = [];
@@ -63,8 +63,8 @@ export async function alerts(db: Db, now: Date, settings: Settings, cap: Capital
     const href = `/products/${b.productId}`;
     if (sig === "LIQUIDATE") out.push({ tone: "danger", title: `صفّي: ${b.productName}`, detail: `دفعة عمرها ${b.ageDays} يوم وباقي منها ${b.remaining.toString()}.`, href });
     if (sig === "MARKDOWN") out.push({ tone: "warn", title: `خفّض السعر: ${b.productName}`, detail: `دفعة عمرها ${b.ageDays} يوم وباقي منها ${b.remaining.toString()}.`, href });
-    if (sig === "SLOW") out.push({ tone: "warn", title: `أوقف أو خفّض: ${b.productName}`, detail: `اتباع ${b.sellThroughWindowPct}% بس في أول ${settings.batchWindowDays} يوم.`, href });
-    if (sig === "DOUBLE") out.push({ tone: "info", title: `ضاعف ×2: ${b.productName}`, detail: `اتباع ${b.sellThroughWindowPct}% في ${settings.batchWindowDays} يوم، و ROAS ${a!.perf.roas!.toFixed(1)} على ${a!.perf.orders} طلب.`, href });
+    if (sig === "SLOW") out.push({ tone: "warn", title: `أوقف أو خفّض: ${b.productName}`, detail: `انباع ${b.sellThroughWindowPct}% بس في أول ${settings.batchWindowDays} يوم.`, href });
+    if (sig === "DOUBLE") out.push({ tone: "info", title: `ضاعف ×2: ${b.productName}`, detail: `انباع ${b.sellThroughWindowPct}% في ${settings.batchWindowDays} يوم، و ROAS ${a!.perf.roas!.toFixed(1)} على ${a!.perf.orders} طلب.`, href });
   }
 
   // الإعلانات: أوقف المنتج
@@ -89,7 +89,7 @@ export async function alerts(db: Db, now: Date, settings: Settings, cap: Capital
   }
 
   if (cap.receivablesOverdue.gt(0)) {
-    out.push({ tone: "warn", title: "ذمم متأخرة أكتر من 30 يوم", detail: `${cap.receivablesOverdue.toFixed(2)} ريال خارج رأس المال لحد التحصيل.`, href: "/orders?filter=unpaid" });
+    out.push({ tone: "warn", title: "ذمم متأخرة أكثر من 30 يوم", detail: `${cap.receivablesOverdue.toFixed(2)} ريال خارج رأس المال لين التحصيل.`, href: "/orders?filter=unpaid" });
   }
 
   const overdue = await overdueFollowUpsCount(db, now);

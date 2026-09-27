@@ -82,7 +82,7 @@ export function QuoteForm(p: {
                   }}
                   className="flex-1"
                 >
-                  <option value="">بند حر (خدمة / مش في المخزون)</option>
+                  <option value="">بند حر (خدمة / مو في المخزون)</option>
                   {p.products.map((x) => (
                     <option key={x.id} value={x.id}>
                       {x.isBox ? "🎁 " : ""}
@@ -96,7 +96,7 @@ export function QuoteForm(p: {
                   </button>
                 )}
               </div>
-              <Input value={l.description} onChange={(e) => update(i, { description: e.target.value })} placeholder="الوصف اللي هيظهر للعميل" />
+              <Input value={l.description} onChange={(e) => update(i, { description: e.target.value })} placeholder="الوصف اللي بيظهر للعميل" />
               <div className="grid grid-cols-2 gap-2">
                 <Input inputMode="numeric" value={l.quantity} onChange={(e) => update(i, { quantity: Math.max(1, parseInt(e.target.value) || 1) })} className="num" aria-label="الكمية" />
                 <Input inputMode="decimal" value={l.unitPrice} onChange={(e) => update(i, { unitPrice: e.target.value })} placeholder="سعر الوحدة" className="num" />
@@ -109,7 +109,7 @@ export function QuoteForm(p: {
                       {lineMargin !== null && <> · الهامش <span className="num">{lineMargin.toFixed(1)}%</span></>}
                     </>
                   ) : (
-                    "مفيش تكلفة معروفة — حط تكلفة تقديرية في صفحة المنتج"
+                    "ما فيه تكلفة معروفة — حط تكلفة تقديرية في صفحة المنتج"
                   )}
                 </p>
               )}

@@ -53,7 +53,7 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
       </Card>
 
       {q.contract ? (
-        <Alert tone="ok" title={`اتحول لعقد #${q.contract.number}`}>
+        <Alert tone="ok" title={`تحوّل لعقد #${q.contract.number}`}>
           <Link href={`/b2b/${q.contract.id}`} className="underline">افتح العقد</Link>
         </Alert>
       ) : canConvert ? (
@@ -62,7 +62,7 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
           <ContractForm quoteId={q.id} items={q.items.map((i) => ({ description: i.description, quantity: i.quantity }))} />
         </Card>
       ) : (
-        st !== "REJECTED" && <Alert tone="info">عشان يتحول لعقد، كل البنود لازم تكون منتجات من المخزون (مش بنود حرة).</Alert>
+        st !== "REJECTED" && <Alert tone="info">عشان يتحول لعقد، كل البنود لازم تكون منتجات من المخزون (مو بنود حرة).</Alert>
       )}
     </div>
   );

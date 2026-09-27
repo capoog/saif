@@ -87,7 +87,7 @@ export function OrderForm({ products, channels, methods, accounts, vat }: Props)
     items: lines,
     discount,
     shippingFee: shipping,
-    // الدفع عند الاستلام = ذمة لحد ما الفلوس توصل فعلًا (تتسجل كدفعة من شاشة الطلب)
+    // الدفع عند الاستلام = ذمة لين ما الفلوس توصل فعلًا (تتسجل كدفعة من شاشة الطلب)
     payMode: method === "cod" ? "none" : payMode,
     payAmount,
     method,
@@ -142,13 +142,13 @@ export function OrderForm({ products, channels, methods, accounts, vat }: Props)
                     <Minus className="size-4" />
                   </button>
                   <input inputMode="numeric" value={l.quantity} onChange={(e) => update(i, { quantity: Math.max(1, parseInt(e.target.value) || 1) })} className="num w-full bg-transparent text-center text-lg font-bold outline-none" />
-                  <button type="button" aria-label="أكتر" onClick={() => update(i, { quantity: l.quantity + 1 })} className="grid size-12 place-items-center">
+                  <button type="button" aria-label="أكثر" onClick={() => update(i, { quantity: l.quantity + 1 })} className="grid size-12 place-items-center">
                     <Plus className="size-4" />
                   </button>
                 </div>
                 <Input inputMode="decimal" placeholder="سعر الوحدة" value={l.unitPrice} onChange={(e) => update(i, { unitPrice: e.target.value })} className="num text-lg" />
               </div>
-              {p && status === "DELIVERED" && l.quantity > p.available && <p className="mt-1 text-xs text-danger">المتاح {p.available} بس — التسليم هيترفض.</p>}
+              {p && status === "DELIVERED" && l.quantity > p.available && <p className="mt-1 text-xs text-danger">المتاح {p.available} بس — التسليم بينرفض.</p>}
             </div>
           );
         })}
@@ -180,9 +180,9 @@ export function OrderForm({ products, channels, methods, accounts, vat }: Props)
           </button>
         ))}
       </div>
-      {method === "cod" && <p className="text-xs text-muted">الدفع عند الاستلام بيتسجل ذمة لحد ما تحصّل الفلوس من شركة الشحن.</p>}
+      {method === "cod" && <p className="text-xs text-muted">الدفع عند الاستلام يتسجل ذمة لين ما تحصّل الفلوس من شركة الشحن.</p>}
       {payMode === "partial" && method !== "cod" && (
-        <Field label="المبلغ المدفوع" hint="قبل التسليم = عربون (التزام، مش إيراد)">
+        <Field label="المبلغ المدفوع" hint="قبل التسليم = عربون (التزام، مو إيراد)">
           <Input inputMode="decimal" value={payAmount} onChange={(e) => setPayAmount(e.target.value)} className="num" />
         </Field>
       )}
@@ -221,7 +221,7 @@ export function OrderForm({ products, channels, methods, accounts, vat }: Props)
         </div>
         {rate > 0 && (
           <div className="flex justify-between text-muted">
-            <span>منها ضريبة {vat.ratePct}% (مش إيراد)</span>
+            <span>منها ضريبة {vat.ratePct}% (مو إيراد)</span>
             <span className="num">{fmt(vatAmount)}</span>
           </div>
         )}

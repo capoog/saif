@@ -42,7 +42,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
         ))}
       </div>
       {orders.length === 0 ? (
-        <Empty>مفيش طلبات هنا.</Empty>
+        <Empty>ما فيه طلبات هنا.</Empty>
       ) : (
         orders.map((o) => {
           const paid = o.payments.reduce((s, p) => s + Number(p.amount), 0);

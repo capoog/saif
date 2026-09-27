@@ -2,7 +2,7 @@
 
 import { Moon, Sun } from "lucide-react";
 
-/** يتنفذ قبل الرسم عشان مفيش وميض: الوضع المحفوظ أو وضع الجهاز */
+/** يتنفذ قبل الرسم عشان ما فيه وميض: الوضع المحفوظ أو وضع الجهاز */
 export const themeScript = `(function(){try{var t=localStorage.getItem("theme");var d=t?t==="dark":window.matchMedia("(prefers-color-scheme: dark)").matches;document.documentElement.classList.toggle("dark",d);}catch(e){}})();`;
 
 export function ThemeToggle() {

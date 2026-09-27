@@ -33,7 +33,7 @@ export function NewProductForm({ engines, categories }: { engines: { id: string;
           <Input name="unit" defaultValue="قطعة" />
         </Field>
       </div>
-      <Field label="النوع" hint="البوكس بيتباع ومخزونه بيتخصم من مكوناته">
+      <Field label="النوع" hint="البوكس ينباع ومخزونه يتخصم من مكوناته">
         <Select name="kind" defaultValue="GOODS">
           <option value="GOODS">منتج / مادة بمخزون</option>
           <option value="BOX">بوكس بمكونات (هدايا)</option>

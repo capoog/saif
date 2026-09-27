@@ -95,7 +95,7 @@ export function SettingsForm({ settings }: { settings: Settings }) {
         <label className="mb-3 flex items-center gap-2 text-sm font-medium">
           <input type="hidden" name="vatRegistered__present" value="1" />
           <input type="checkbox" name="vatRegistered" defaultChecked={settings.vatRegistered} className="size-5" />
-          مسجّل في ضريبة القيمة المضافة (الطلبات الجديدة هتحسب الضريبة)
+          مسجّل في ضريبة القيمة المضافة (الطلبات الجديدة بتحسب الضريبة)
         </label>
         <label className="mb-3 flex items-center gap-2 text-sm">
           <input type="hidden" name="pricesIncludeVat__present" value="1" />

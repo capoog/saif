@@ -37,7 +37,7 @@ export const QUOTE_STATUS_LABEL: Record<QuoteStatus, string> = {
   EXPIRED: "منتهي",
 };
 
-/** العرض بيتعامل "منتهي" لو عدّت صلاحيته وهو لسه مسودة أو مرسل */
+/** العرض بيتعامل "منتهي" لو عدّت صلاحيته وهو للحين مسودة أو مرسل */
 export function effectiveQuoteStatus(q: { status: QuoteStatus; validUntil: Date }, now = new Date()): QuoteStatus {
   return (q.status === "DRAFT" || q.status === "SENT") && q.validUntil < now ? "EXPIRED" : q.status;
 }
@@ -105,7 +105,7 @@ export async function createQuote(db: Db, actor: Actor, input: QuoteInput) {
 export async function setQuoteStatus(db: Db, actor: Actor, id: string, status: Exclude<QuoteStatus, "ACCEPTED" | "EXPIRED">) {
   return db.$transaction(async (tx) => {
     const q = await tx.quote.findUniqueOrThrow({ where: { id } });
-    if (q.status === "ACCEPTED") throw new UserError("العرض اتقبل واتحول لعقد");
+    if (q.status === "ACCEPTED") throw new UserError("العرض انقبل وتحوّل لعقد");
     const saved = await tx.quote.update({ where: { id }, data: { status } });
     if (status === "SENT") await advanceDealTx(tx, actor, q.dealId, "QUOTE_SENT");
     await audit(tx, actor, "status", "Quote", id, { before: { status: q.status }, after: { status } });
@@ -115,13 +115,13 @@ export async function setQuoteStatus(db: Db, actor: Actor, id: string, status: E
 
 export interface DeliveryPlan {
   date: Date;
-  /** كمية كل بند في الدفعة دي، بنفس ترتيب بنود العرض */
+  /** كمية كل بند في الدفعة هذي، بنفس ترتيب بنود العرض */
   quantities: number[];
 }
 
 /**
  * قبول العرض → عقد B2B. كل دفعة تسليم = طلب مؤكد مرتبط بالعقد (بنفس الأسعار).
- * الخصم بيتوزع على الدفعات بنسبة القيمة، والشحن على أول دفعة.
+ * الخصم يتوزع على الدفعات بنسبة القيمة، والشحن على أول دفعة.
  */
 export async function createContractFromQuote(
   db: Db,
@@ -132,7 +132,7 @@ export async function createContractFromQuote(
   const settings = await getSettings(db);
   return db.$transaction(async (tx) => {
     const q = await tx.quote.findUniqueOrThrow({ where: { id: quoteId }, include: { items: { orderBy: { sortOrder: "asc" } }, contract: true } });
-    if (q.contract) throw new UserError("العرض ده اتحول لعقد قبل كده");
+    if (q.contract) throw new UserError("العرض هذا تحوّل لعقد قبل كذا");
     if (q.status === "REJECTED") throw new UserError("العرض مرفوض");
     if (q.items.some((i) => !i.productId)) throw new UserError("كل بنود العرض لازم تكون مربوطة بمنتج قبل ما تتحول لعقد");
 
@@ -210,8 +210,8 @@ async function contractOrders(tx: Tx | Db, contractId: string) {
 }
 
 /**
- * العربون: بيتوزع على دفعات العقد المفتوحة بنسبة المتبقي على كل دفعة (آخر دفعة تاخد الباقي).
- * قبل التسليم هو التزام (مش إيراد) — حساب العملاء لكل طلب.
+ * العربون: يتوزع على دفعات العقد المفتوحة بنسبة المتبقي على كل دفعة (آخر دفعة تاخذ الباقي).
+ * قبل التسليم هو التزام (مو إيراد) — حساب العملاء لكل طلب.
  */
 export async function recordContractPayment(
   db: Db,
@@ -244,7 +244,7 @@ export async function cancelContract(db: Db, actor: Actor, contractId: string, r
   if (!reason?.trim()) throw new UserError("اكتب سبب الإلغاء");
   return db.$transaction(async (tx) => {
     const c = await tx.b2BContract.findUniqueOrThrow({ where: { id: contractId }, include: { orders: true } });
-    if (c.orders.some((o) => o.status === "DELIVERED")) throw new UserError("فيه دفعات اتسلمت — اعمل مرتجع أو إلغاء للدفعات المفتوحة من شاشة كل طلب");
+    if (c.orders.some((o) => o.status === "DELIVERED")) throw new UserError("فيه دفعات تسلّمت — اعمل مرتجع أو إلغاء للدفعات المفتوحة من شاشة كل طلب");
     for (const o of c.orders.filter((o) => o.status !== "CANCELLED")) {
       await tx.order.update({ where: { id: o.id }, data: { status: "CANCELLED", cancelledAt: new Date() } });
     }

@@ -83,7 +83,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
           <Card>
             <CardTitle>الدفعات (FIFO)</CardTitle>
             {batches.length === 0 ? (
-              <Empty>مفيش دفعات. السعر الفعلي بيتحدد مع أول شراء.</Empty>
+              <Empty>ما فيه دفعات. السعر الفعلي بيتحدد مع أول شراء.</Empty>
             ) : (
               <div className="-mx-4 overflow-x-auto px-4">
                 <table className="w-full min-w-[560px] text-sm">

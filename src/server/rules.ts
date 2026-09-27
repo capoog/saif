@@ -5,7 +5,7 @@ import { UserError } from "./errors";
 import { getCapital } from "./services/balances";
 import { getSettings } from "./services/settings";
 
-/** العملية اتعترضت بقاعدة أو أكتر — الواجهة بتعرضها وتطلب سبب للتجاوز */
+/** العملية انوقفت بقاعدة أو أكثر — الواجهة بتعرضها وتطلب سبب للتجاوز */
 export class RuleViolationError extends UserError {
   constructor(public readonly violations: Violation[]) {
     super(violations.map((v) => v.title).join(" · "));

@@ -21,7 +21,7 @@ export async function reconcileAllAction(_prev: ActionState, fd: FormData): Prom
       const r = await reconcileAccount(prisma, actorOf(user), k.slice(7), amount, new Date());
       if (!r.diff.isZero()) diffs.push({ account: r.account, diff: r.diff.toFixed(2) });
     }
-    return { ok: true, message: diffs.length ? `اتسجلت فروقات: ${diffs.map((d) => `${d.account} ${d.diff}`).join("، ")}` : "كل الأرصدة مطابقة ✔", data: diffs };
+    return { ok: true, message: diffs.length ? `تسجّلت فروقات: ${diffs.map((d) => `${d.account} ${d.diff}`).join("، ")}` : "كل الأرصدة مطابقة ✔", data: diffs };
   });
   revalidatePath("/", "layout");
   return res;
@@ -38,7 +38,7 @@ export async function stockCountAction(_prev: ActionState, fd: FormData): Promis
       const r = await adjustStock(prisma, actorOf(user), k.slice(6), v.trim(), new Date(), "جرد الإغلاق الأسبوعي");
       if (!r.diff.isZero()) diffs.push(`${r.diff.gt(0) ? "+" : ""}${r.diff.toString()}`);
     }
-    return { ok: true, message: diffs.length ? `اتسجلت ${diffs.length} فروقات جرد` : "المخزون مطابق ✔" };
+    return { ok: true, message: diffs.length ? `تسجّلت ${diffs.length} فروقات جرد` : "المخزون مطابق ✔" };
   });
   revalidatePath("/", "layout");
   return res;
@@ -77,5 +77,5 @@ export async function updateDecisionAction(_prev: ActionState, fd: FormData): Pr
     await updateSnapshotDecision(prisma, actorOf(user), v.week, v.decision, v.reason);
   });
   if (res.ok) revalidatePath("/close");
-  return res.ok ? { ok: true, message: "اتحفظ التعديل" } : res;
+  return res.ok ? { ok: true, message: "انحفظ التعديل" } : res;
 }

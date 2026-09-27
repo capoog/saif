@@ -23,7 +23,7 @@ export function ContractPayment({ id, suggested, accounts }: { id: string; sugge
           </Select>
         </Field>
       </div>
-      <p className="text-xs text-muted">المبلغ بيتوزع على الدفعات المفتوحة. قبل التسليم = عربون (التزام)، بعد التسليم = تحصيل.</p>
+      <p className="text-xs text-muted">المبلغ يتوزع على الدفعات المفتوحة. قبل التسليم = عربون (التزام)، بعد التسليم = تحصيل.</p>
       <FormError state={state} />
       {state.ok && <p className="text-sm text-ok">{state.message}</p>}
       <SubmitButton>تسجيل</SubmitButton>
@@ -44,7 +44,7 @@ export function CancelContract({ id }: { id: string }) {
     <form action={action} className="space-y-2">
       <input type="hidden" name="id" value={id} />
       <Input name="reason" required placeholder="سبب الإلغاء" />
-      <p className="text-xs text-muted">لو فيه عربون متحصّل، هيفضل التزام للعميل لحد ما ترجّعه من صفحة كل طلب.</p>
+      <p className="text-xs text-muted">لو فيه عربون متحصّل، بيبقى التزام للعميل لين ما ترجّعه من صفحة كل طلب.</p>
       <FormError state={state} />
       <SubmitButton variant="danger" size="sm">تأكيد الإلغاء</SubmitButton>
     </form>

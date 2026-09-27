@@ -14,7 +14,7 @@ export default async function QuotesPage() {
     <div className="space-y-4">
       <PageHeader title="عروض الأسعار" action={<ButtonLink href="/quotes/new" size="sm">+ عرض سعر</ButtonLink>} />
       {quotes.length === 0 ? (
-        <Empty>مفيش عروض لسه.</Empty>
+        <Empty>ما فيه عروض للحين.</Empty>
       ) : (
         quotes.map((q) => {
           const st = effectiveQuoteStatus(q);

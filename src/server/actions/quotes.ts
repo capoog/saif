@@ -102,7 +102,7 @@ export async function contractPaymentAction(_prev: ActionState, fd: FormData): P
     await recordContractPayment(prisma, actorOf(user), v.id, { amount: v.amount, accountId: v.accountId, method: v.method, date: entryDate(v.date) });
   });
   if (res.ok) revalidatePath("/", "layout");
-  return res.ok ? { ok: true, message: "اتسجلت الدفعة" } : res;
+  return res.ok ? { ok: true, message: "تسجّلت الدفعة" } : res;
 }
 
 export async function cancelContractAction(_prev: ActionState, fd: FormData): Promise<ActionState> {
@@ -111,5 +111,5 @@ export async function cancelContractAction(_prev: ActionState, fd: FormData): Pr
     await cancelContract(prisma, actorOf(user), String(fd.get("id")), String(fd.get("reason") ?? ""));
   });
   if (res.ok) revalidatePath("/", "layout");
-  return res.ok ? { ok: true, message: "اتلغى العقد" } : res;
+  return res.ok ? { ok: true, message: "انلغى العقد" } : res;
 }

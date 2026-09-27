@@ -34,7 +34,7 @@ export async function login(db: Db, email: string, password: string, code: strin
     return generic;
   }
   if (user.lockedUntil && user.lockedUntil > new Date()) {
-    return { ok: false, error: "الحساب مقفول مؤقتًا بسبب محاولات كثيرة. جرّب بعد شوية." };
+    return { ok: false, error: "الحساب مقفول مؤقتًا بسبب محاولات كثيرة. جرّب بعد شوي." };
   }
   const valid = await bcrypt.compare(password, user.passwordHash);
   if (valid && user.totpEnabled && !code) return { ok: false, needCode: true, error: "" };

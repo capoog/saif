@@ -113,7 +113,7 @@ function SupplierPicker({ suppliers, required }: { suppliers: { id: string; name
         {suppliers.map((s) => (
           <option key={s.id} value={s.id}>{s.name}</option>
         ))}
-        <option value="">مورد مش مسجل…</option>
+        <option value="">مورد مو مسجل…</option>
       </Select>
       {!id && required && <Input name="supplierName" required placeholder="اسم المورد" />}
     </div>

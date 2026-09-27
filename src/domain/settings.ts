@@ -1,6 +1,6 @@
 /**
  * كل الأرقام الحاكمة للقواعد هنا — قابلة للتعديل من شاشة الإعدادات
- * (بتتخزن في جدول Setting وتدمج فوق القيم الافتراضية دي).
+ * (بتتخزن في جدول Setting وتدمج فوق القيم الافتراضية هذي).
  */
 export const DEFAULT_SETTINGS = {
   // حالة الأداء مقابل الهدف (نسبة مئوية)
@@ -8,7 +8,7 @@ export const DEFAULT_SETTINGS = {
   statusDangerPct: 25, // أقل من −25% = أحمر، وبين −3% و −25% = أصفر
 
   // رأس المال
-  receivableSecuredDays: 30, // الذمم المتأخرة أكتر من كده متدخلش في رأس المال
+  receivableSecuredDays: 30, // الذمم المتأخرة أكثر من كذا ما تدخل في رأس المال
   zakatAnnualRatePct: 2.5, // يتحسب شهريًا = السنوي ÷ 12 (تقدير — الحساب الرسمي مع المحاسب)
 
   // الضريبة
@@ -58,7 +58,7 @@ export const DEFAULT_SETTINGS = {
   adStopCpaMarginPct: 40,
 
   // بيانات المنشأة (لعروض الأسعار لاحقًا)
-  businessName: "",
+  businessName: "الغباشي للمقاولات والتجارة",
   businessCr: "",
   businessVatNo: "",
   businessPhone: "",
@@ -71,7 +71,10 @@ export function mergeSettings(stored: Partial<Record<string, unknown>>): Setting
   const out = { ...DEFAULT_SETTINGS } as Record<string, unknown>;
   for (const [k, def] of Object.entries(DEFAULT_SETTINGS)) {
     const v = stored[k];
-    if (v !== undefined && v !== null && typeof v === typeof def) out[k] = v;
+    if (v === undefined || v === null || typeof v !== typeof def) continue;
+    // نص فاضي مايلغيش قيمة افتراضية (زي اسم المنشأة)
+    if (typeof v === "string" && v.trim() === "" && def !== "") continue;
+    out[k] = v;
   }
   return out as Settings;
 }

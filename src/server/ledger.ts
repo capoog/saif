@@ -51,7 +51,7 @@ export async function postEntry(tx: Tx, input: PostEntryInput) {
 /** قيد عكسي بنفس الأسطر (مدين ↔ دائن). القيد الأصلي يفضل موجود للتاريخ. */
 export async function reverseEntry(tx: Tx, entryId: string, date: Date, description: string, createdById?: string | null) {
   const original = await tx.journalEntry.findUniqueOrThrow({ where: { id: entryId }, include: { lines: true, reversedBy: true } });
-  if (original.reversedBy) throw new Error("القيد ده متعكس قبل كده");
+  if (original.reversedBy) throw new Error("القيد هذا متعكس قبل كذا");
   return tx.journalEntry.create({
     data: {
       date,

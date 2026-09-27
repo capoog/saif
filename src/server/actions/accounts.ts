@@ -43,7 +43,7 @@ export async function createTransactionAction(_prev: ActionState, fd: FormData):
   });
   if (!res.ok) return res;
   revalidatePath("/", "layout");
-  if (again) return { ok: true, message: "اتسجلت ✔ — سجّل التالية" };
+  if (again) return { ok: true, message: "تسجّلت ✔ — سجّل التالية" };
   redirect("/accounts");
 }
 
@@ -53,5 +53,5 @@ export async function deleteTransactionAction(_prev: ActionState, fd: FormData):
     await deleteTransaction(prisma, actorOf(user), String(fd.get("id")), String(fd.get("reason") ?? ""));
   });
   if (res.ok) revalidatePath("/", "layout");
-  return res.ok ? { ok: true, message: "اتلغت الحركة" } : res;
+  return res.ok ? { ok: true, message: "انلغت الحركة" } : res;
 }

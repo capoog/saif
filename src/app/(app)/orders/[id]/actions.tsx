@@ -37,12 +37,12 @@ export function StatusActions({ id, next, paid, accounts }: { id: string; next: 
           <input type="hidden" name="id" value={id} />
           <input type="hidden" name="to" value={pending} />
           <p className="text-sm">
-            {pending === "RETURNED" ? "المرتجع هيرجّع الكميات للمخزون ويعكس الإيراد." : "إلغاء الطلب."}
+            {pending === "RETURNED" ? "المرتجع بيرجّع الكميات للمخزون ويعكس الإيراد." : "إلغاء الطلب."}
           </p>
           {paid > 0 && (
             <>
               <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" name="refund" value="1" defaultChecked className="size-5" /> رجّع للعميل <span className="num font-semibold">{paid.toFixed(2)}</span> دلوقتي
+                <input type="checkbox" name="refund" value="1" defaultChecked className="size-5" /> رجّع للعميل <span className="num font-semibold">{paid.toFixed(2)}</span> الحين
               </label>
               <Select name="refundAccountId" defaultValue={accounts.find((a) => a.code === "CASH_BOX")?.id}>
                 {accounts.map((a) => (

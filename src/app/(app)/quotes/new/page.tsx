@@ -19,7 +19,7 @@ export default async function NewQuotePage({ searchParams }: { searchParams: Pro
   if (customers.length === 0)
     return (
       <p className="text-sm">
-        مفيش عملاء. <Link href="/customers/new?next=quote" className="text-primary">أضف عميل الأول</Link>
+        ما فيه عملاء. <Link href="/customers/new?next=quote" className="text-primary">أضف عميل الأول</Link>
       </p>
     );
   return (

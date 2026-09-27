@@ -47,7 +47,7 @@ export async function createOrderAction(_prev: ActionState, fd: FormData): Promi
     let payment = null;
     if (v.payMode !== "none") {
       if (!v.accountId) throw new UserError("اختار حساب الاستلام");
-      // "full" = الإجمالي المحسوب في السيرفر (مش اللي جاي من الجوال)
+      // "full" = الإجمالي المحسوب في السيرفر (مو اللي جاي من الجوال)
       payment = { amount: v.payMode === "full" ? "FULL" : v.payAmount, method: v.method, accountId: v.accountId, date };
     }
     const order = await createOrder(prisma, actorOf(user), {
@@ -95,7 +95,7 @@ export async function addPaymentAction(_prev: ActionState, fd: FormData): Promis
     await addPayment(prisma, actorOf(user), v.id, { amount: v.amount, method: v.method, accountId: v.accountId, date: entryDate(v.date) });
   });
   if (res.ok) revalidatePath("/", "layout");
-  return res.ok ? { ok: true, message: "اتسجلت الدفعة" } : res;
+  return res.ok ? { ok: true, message: "تسجّلت الدفعة" } : res;
 }
 
 export async function setInvoiceAction(_prev: ActionState, fd: FormData): Promise<ActionState> {
@@ -105,5 +105,5 @@ export async function setInvoiceAction(_prev: ActionState, fd: FormData): Promis
     await setOfficialInvoice(prisma, actorOf(user), v.id, v.no.trim(), v.url.trim());
   });
   if (res.ok) revalidatePath("/orders");
-  return res.ok ? { ok: true, message: "اتحفظت" } : res;
+  return res.ok ? { ok: true, message: "انحفظت" } : res;
 }
