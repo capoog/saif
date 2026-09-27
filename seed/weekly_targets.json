@@ -1,0 +1,266 @@
+[
+ {
+  "week": 1,
+  "days": "1–7",
+  "week_start_date": "2026-09-27",
+  "start_capital_target": 20000,
+  "end_capital_target": 21000,
+  "required_net_profit": 1000
+ },
+ {
+  "week": 2,
+  "days": "8–14",
+  "week_start_date": "2026-10-04",
+  "start_capital_target": 21000,
+  "end_capital_target": 23400,
+  "required_net_profit": 2400
+ },
+ {
+  "week": 3,
+  "days": "15–21",
+  "week_start_date": "2026-10-11",
+  "start_capital_target": 23400,
+  "end_capital_target": 26100,
+  "required_net_profit": 2700
+ },
+ {
+  "week": 4,
+  "days": "22–28",
+  "week_start_date": "2026-10-18",
+  "start_capital_target": 26100,
+  "end_capital_target": 29100,
+  "required_net_profit": 3000
+ },
+ {
+  "week": 5,
+  "days": "29–35",
+  "week_start_date": "2026-10-25",
+  "start_capital_target": 29100,
+  "end_capital_target": 32700,
+  "required_net_profit": 3600
+ },
+ {
+  "week": 6,
+  "days": "36–42",
+  "week_start_date": "2026-11-01",
+  "start_capital_target": 32700,
+  "end_capital_target": 36800,
+  "required_net_profit": 4100
+ },
+ {
+  "week": 7,
+  "days": "43–49",
+  "week_start_date": "2026-11-08",
+  "start_capital_target": 36800,
+  "end_capital_target": 41500,
+  "required_net_profit": 4700
+ },
+ {
+  "week": 8,
+  "days": "50–56",
+  "week_start_date": "2026-11-15",
+  "start_capital_target": 41500,
+  "end_capital_target": 46700,
+  "required_net_profit": 5200
+ },
+ {
+  "week": 9,
+  "days": "57–63",
+  "week_start_date": "2026-11-22",
+  "start_capital_target": 46700,
+  "end_capital_target": 53600,
+  "required_net_profit": 6900
+ },
+ {
+  "week": 10,
+  "days": "64–70",
+  "week_start_date": "2026-11-29",
+  "start_capital_target": 53600,
+  "end_capital_target": 63000,
+  "required_net_profit": 9400
+ },
+ {
+  "week": 11,
+  "days": "71–77",
+  "week_start_date": "2026-12-06",
+  "start_capital_target": 63000,
+  "end_capital_target": 74100,
+  "required_net_profit": 11100
+ },
+ {
+  "week": 12,
+  "days": "78–84",
+  "week_start_date": "2026-12-13",
+  "start_capital_target": 74100,
+  "end_capital_target": 87100,
+  "required_net_profit": 13000
+ },
+ {
+  "week": 13,
+  "days": "85–91",
+  "week_start_date": "2026-12-20",
+  "start_capital_target": 87100,
+  "end_capital_target": 102300,
+  "required_net_profit": 15200
+ },
+ {
+  "week": 14,
+  "days": "92–98",
+  "week_start_date": "2026-12-27",
+  "start_capital_target": 102300,
+  "end_capital_target": 120300,
+  "required_net_profit": 18000
+ },
+ {
+  "week": 15,
+  "days": "99–105",
+  "week_start_date": "2027-01-03",
+  "start_capital_target": 120300,
+  "end_capital_target": 141400,
+  "required_net_profit": 21100
+ },
+ {
+  "week": 16,
+  "days": "106–112",
+  "week_start_date": "2027-01-10",
+  "start_capital_target": 141400,
+  "end_capital_target": 166200,
+  "required_net_profit": 24800
+ },
+ {
+  "week": 17,
+  "days": "113–119",
+  "week_start_date": "2027-01-17",
+  "start_capital_target": 166200,
+  "end_capital_target": 195300,
+  "required_net_profit": 29100
+ },
+ {
+  "week": 18,
+  "days": "120–126",
+  "week_start_date": "2027-01-24",
+  "start_capital_target": 195300,
+  "end_capital_target": 216800,
+  "required_net_profit": 21500
+ },
+ {
+  "week": 19,
+  "days": "127–133",
+  "week_start_date": "2027-01-31",
+  "start_capital_target": 216800,
+  "end_capital_target": 238300,
+  "required_net_profit": 21500
+ },
+ {
+  "week": 20,
+  "days": "134–140",
+  "week_start_date": "2027-02-07",
+  "start_capital_target": 238300,
+  "end_capital_target": 262000,
+  "required_net_profit": 23700
+ },
+ {
+  "week": 21,
+  "days": "141–147",
+  "week_start_date": "2027-02-14",
+  "start_capital_target": 262000,
+  "end_capital_target": 288000,
+  "required_net_profit": 26000
+ },
+ {
+  "week": 22,
+  "days": "148–154",
+  "week_start_date": "2027-02-21",
+  "start_capital_target": 288000,
+  "end_capital_target": 321000,
+  "required_net_profit": 33000
+ },
+ {
+  "week": 23,
+  "days": "155–161",
+  "week_start_date": "2027-02-28",
+  "start_capital_target": 321000,
+  "end_capital_target": 361600,
+  "required_net_profit": 40600
+ },
+ {
+  "week": 24,
+  "days": "162–168",
+  "week_start_date": "2027-03-07",
+  "start_capital_target": 361600,
+  "end_capital_target": 407400,
+  "required_net_profit": 45800
+ },
+ {
+  "week": 25,
+  "days": "169–175",
+  "week_start_date": "2027-03-14",
+  "start_capital_target": 407400,
+  "end_capital_target": 459000,
+  "required_net_profit": 51600
+ },
+ {
+  "week": 26,
+  "days": "176–182",
+  "week_start_date": "2027-03-21",
+  "start_capital_target": 459000,
+  "end_capital_target": 513700,
+  "required_net_profit": 54700
+ },
+ {
+  "week": 27,
+  "days": "183–189",
+  "week_start_date": "2027-03-28",
+  "start_capital_target": 513700,
+  "end_capital_target": 564700,
+  "required_net_profit": 51000
+ },
+ {
+  "week": 28,
+  "days": "190–196",
+  "week_start_date": "2027-04-04",
+  "start_capital_target": 564700,
+  "end_capital_target": 620700,
+  "required_net_profit": 56000
+ },
+ {
+  "week": 29,
+  "days": "197–203",
+  "week_start_date": "2027-04-11",
+  "start_capital_target": 620700,
+  "end_capital_target": 682300,
+  "required_net_profit": 61600
+ },
+ {
+  "week": 30,
+  "days": "204–210",
+  "week_start_date": "2027-04-18",
+  "start_capital_target": 682300,
+  "end_capital_target": 750000,
+  "required_net_profit": 67700
+ },
+ {
+  "week": 31,
+  "days": "211–217",
+  "week_start_date": "2027-04-25",
+  "start_capital_target": 750000,
+  "end_capital_target": 834000,
+  "required_net_profit": 84000
+ },
+ {
+  "week": 32,
+  "days": "218–224",
+  "week_start_date": "2027-05-02",
+  "start_capital_target": 834000,
+  "end_capital_target": 927000,
+  "required_net_profit": 93000
+ },
+ {
+  "week": 33,
+  "days": "225–229",
+  "week_start_date": "2027-05-09",
+  "start_capital_target": 927000,
+  "end_capital_target": 1000000,
+  "required_net_profit": 73000
+ }
+]

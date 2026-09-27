@@ -1,0 +1,424 @@
+// نموذج بيانات المرحلة 1 — النواة.
+// كل المبالغ Decimal. كل حركة مالية = قيد في دفتر الأستاذ (JournalEntry/JournalLine).
+// الجداول الظاهرة للمستخدم (Transaction, InventoryBatch, Order, Payment) بتشاور على قيودها.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ───────────────────────── المستخدمين والأمان ─────────────────────────
+
+enum Role {
+  owner
+  sales
+  freelancer
+}
+
+model User {
+  id             String    @id @default(cuid())
+  email          String    @unique
+  name           String
+  passwordHash   String
+  role           Role      @default(owner)
+  totpSecret     String?
+  totpEnabled    Boolean   @default(false)
+  failedLogins   Int       @default(0)
+  lockedUntil    DateTime?
+  active         Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  sessions       Session[]
+  auditLogs      AuditLog[]
+}
+
+model Session {
+  id         String   @id @default(cuid())
+  tokenHash  String   @unique
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  userAgent  String?
+
+  @@index([userId])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  action    String // create | update | delete | override | close | reopen ...
+  entity    String
+  entityId  String?
+  before    Json?
+  after     Json?
+  reason    String?
+  createdAt DateTime @default(now())
+
+  @@index([entity, entityId])
+  @@index([createdAt])
+}
+
+model Setting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+}
+
+// ───────────────────────── المحركات ─────────────────────────
+
+model Engine {
+  id        String  @id @default(cuid())
+  code      String  @unique // ECOM | B2B | AGENCY | CARS | SUPPLY
+  name      String
+  sortOrder Int     @default(0)
+  active    Boolean @default(true)
+
+  products     Product[]
+  journalLines JournalLine[]
+  orders       Order[]
+  transactions Transaction[]
+}
+
+// ───────────────────────── دفتر الأستاذ ─────────────────────────
+
+enum AccountType {
+  ASSET
+  LIABILITY
+  EQUITY
+  INCOME
+  EXPENSE
+}
+
+// التصنيف اللي حساب رأس المال بيعتمد عليه
+enum AccountKind {
+  CASH // بنك / صندوق / حساب الضريبة
+  WALLET // مدى / Apple Pay / تابي — مستحقات تسوية
+  INVENTORY
+  CUSTOMER // رصيد العملاء لكل طلب: مدين = ذمة، دائن = عربون
+  SUPPLIER_PAYABLE
+  FREELANCER_PAYABLE
+  LOAN
+  VAT_PAYABLE
+  ZAKAT_PROVISION
+  OWNER_CAPITAL
+  PARTNER_CAPITAL
+  REVENUE
+  OTHER_INCOME
+  COGS
+  EXPENSE
+}
+
+model LedgerAccount {
+  id         String      @id @default(cuid())
+  code       String      @unique
+  name       String
+  type       AccountType
+  kind       AccountKind
+  // يظهر في شاشة "الحسابات والنقد" كحساب فعلي بيتحرك فيه فلوس
+  isMoney    Boolean     @default(false)
+  isTaxReserve Boolean   @default(false)
+  system     Boolean     @default(true)
+  active     Boolean     @default(true)
+  sortOrder  Int         @default(0)
+  createdAt  DateTime    @default(now())
+
+  lines JournalLine[]
+}
+
+model JournalEntry {
+  id          String    @id @default(cuid())
+  date        DateTime
+  description String
+  sourceType  String // TRANSACTION | BATCH | ORDER_PAYMENT | ORDER_DELIVERY | ORDER_RETURN | ADJUSTMENT | RECONCILE | ZAKAT | OPENING
+  sourceId    String?
+  // لتجميع رصيد العميل لكل طلب (الذمم والعرابين)
+  orderId     String?
+  order       Order?    @relation(fields: [orderId], references: [id])
+  reversalOfId String?  @unique
+  reversalOf  JournalEntry?  @relation("Reversal", fields: [reversalOfId], references: [id])
+  reversedBy  JournalEntry?  @relation("Reversal")
+  createdById String?
+  createdAt   DateTime  @default(now())
+
+  lines JournalLine[]
+
+  @@index([date])
+  @@index([sourceType, sourceId])
+  @@index([orderId])
+}
+
+model JournalLine {
+  id        String        @id @default(cuid())
+  entryId   String
+  entry     JournalEntry  @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  accountId String
+  account   LedgerAccount @relation(fields: [accountId], references: [id])
+  debit     Decimal       @default(0) @db.Decimal(14, 2)
+  credit    Decimal       @default(0) @db.Decimal(14, 2)
+  engineId  String?
+  engine    Engine?       @relation(fields: [engineId], references: [id])
+  memo      String?
+
+  @@index([accountId])
+  @@index([engineId])
+}
+
+// ───────────────────────── الحركات النقدية ─────────────────────────
+
+enum TransactionType {
+  DEPOSIT // إيداع (رأس مال مالك / شريك / قرض / دخل آخر)
+  WITHDRAWAL // سحب (مسحوبات مالك / سداد قرض / سداد التزام / سداد ضريبة)
+  TRANSFER
+  EXPENSE
+}
+
+model Transaction {
+  id              String          @id @default(cuid())
+  type            TransactionType
+  date            DateTime
+  amount          Decimal         @db.Decimal(14, 2)
+  accountId       String // الحساب النقدي المتأثر (من)
+  toAccountId     String? // في التحويل، أو الحساب المقابل (ضريبة، قرض، رأس مال…)
+  category        String? // تصنيف المصروف أو نوع الإيداع/السحب
+  engineId        String?
+  engine          Engine?         @relation(fields: [engineId], references: [id])
+  note            String?
+  refType         String? // ORDER | CAR_DEAL | PROJECT ... (ربط اختياري)
+  refId           String?
+  journalEntryId  String?         @unique
+  createdById     String?
+  createdAt       DateTime        @default(now())
+  deletedAt       DateTime?
+
+  @@index([date])
+}
+
+// ───────────────────────── المنتجات والمخزون ─────────────────────────
+
+enum ProductStatus {
+  PRIORITY_TEST // أولوية للاختبار
+  TESTING // قيد الاختبار
+  ACTIVE // مستمر
+  STOPPED // موقوف
+  LATER // لاحقًا
+  AVOID // تجنّب
+}
+
+model Product {
+  id               String        @id @default(cuid())
+  number           Int?          @unique
+  name             String
+  category         String
+  engineId         String
+  engine           Engine        @relation(fields: [engineId], references: [id])
+  status           ProductStatus @default(LATER)
+  unit             String        @default("قطعة")
+  defaultSellPrice Decimal?      @db.Decimal(14, 2)
+  // ملاحظات تقديرية من ملف البحث — السعر الفعلي يتحدد عند أول شراء
+  buyPriceRange    String?
+  sellPriceRange   String?
+  grossMarginNote  String?
+  turnover         String?
+  b2b              String?
+  brandPotential   String?
+  regulatoryNote   String?
+  notes            String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  deletedAt        DateTime?
+
+  batches    InventoryBatch[]
+  orderItems OrderItem[]
+}
+
+model InventoryBatch {
+  id           String    @id @default(cuid())
+  productId    String
+  product      Product   @relation(fields: [productId], references: [id])
+  receivedAt   DateTime
+  quantity     Int
+  remaining    Int
+  // تكلفة الوحدة شاملة الشحن
+  unitCost     Decimal   @db.Decimal(14, 4)
+  totalCost    Decimal   @db.Decimal(14, 2)
+  paidAmount   Decimal   @db.Decimal(14, 2)
+  paidFromId   String?
+  supplierName String?
+  note         String?
+  journalEntryId String? @unique
+  createdAt    DateTime  @default(now())
+  deletedAt    DateTime?
+
+  consumptions BatchConsumption[]
+
+  @@index([productId, receivedAt])
+}
+
+// كل خصم من دفعة (بيع بـ FIFO أو تسوية جرد)
+model BatchConsumption {
+  id          String         @id @default(cuid())
+  batchId     String
+  batch       InventoryBatch @relation(fields: [batchId], references: [id])
+  quantity    Int // موجب = خصم، سالب = رجوع للمخزون
+  unitCost    Decimal        @db.Decimal(14, 4)
+  // التكلفة الفعلية المخصومة (آخر وحدات الدفعة تاخد الباقي بالظبط عشان مفيش فروقات تقريب)
+  cost        Decimal        @db.Decimal(14, 2)
+  date        DateTime
+  orderItemId String?
+  orderItem   OrderItem?     @relation(fields: [orderItemId], references: [id])
+  reason      String // SALE | RETURN | ADJUSTMENT
+  createdAt   DateTime       @default(now())
+
+  @@index([batchId])
+  @@index([orderItemId])
+}
+
+// ───────────────────────── العملاء والطلبات ─────────────────────────
+
+model Customer {
+  id        String   @id @default(cuid())
+  name      String
+  type      String   @default("individual") // individual | company
+  phone     String?
+  sector    String?
+  contact   String?
+  channel   String?
+  notes     String?
+  createdAt DateTime @default(now())
+  deletedAt DateTime?
+
+  orders Order[]
+
+  @@index([phone])
+}
+
+enum OrderStatus {
+  NEW
+  CONFIRMED
+  SHIPPED
+  DELIVERED
+  RETURNED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  UNPAID
+  PARTIAL
+  PAID
+  REFUNDED
+}
+
+model Order {
+  id                 String        @id @default(cuid())
+  number             Int           @unique @default(autoincrement())
+  date               DateTime
+  customerId         String?
+  customer           Customer?     @relation(fields: [customerId], references: [id])
+  channel            String
+  engineId           String
+  engine             Engine        @relation(fields: [engineId], references: [id])
+  status             OrderStatus   @default(NEW)
+  paymentStatus      PaymentStatus @default(UNPAID)
+  paymentMethod      String?
+  subtotal           Decimal       @db.Decimal(14, 2) // مجموع البنود
+  discount           Decimal       @default(0) @db.Decimal(14, 2)
+  shippingFee        Decimal       @default(0) @db.Decimal(14, 2) // شحن محصّل من العميل
+  vatAmount          Decimal       @default(0) @db.Decimal(14, 2)
+  total              Decimal       @db.Decimal(14, 2) // الإجمالي المستحق من العميل
+  netRevenue         Decimal       @db.Decimal(14, 2) // الإجمالي بدون الضريبة
+  pricesIncludeVat   Boolean       @default(true)
+  vatRate            Decimal       @default(0) @db.Decimal(5, 4)
+  deliveredAt        DateTime?
+  returnedAt         DateTime?
+  cancelledAt        DateTime?
+  officialInvoiceNo  String?
+  officialInvoiceUrl String?
+  note               String?
+  createdById        String?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  deletedAt          DateTime?
+
+  items          OrderItem[]
+  payments       Payment[]
+  journalEntries JournalEntry[]
+
+  @@index([date])
+  @@index([status])
+}
+
+model OrderItem {
+  id         String   @id @default(cuid())
+  orderId    String
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id])
+  quantity   Int
+  unitPrice  Decimal  @db.Decimal(14, 2)
+  lineTotal  Decimal  @db.Decimal(14, 2)
+  // تكلفة البضاعة المباعة بعد خصم FIFO (تتحدد عند التسليم)
+  cogs       Decimal? @db.Decimal(14, 2)
+
+  consumptions BatchConsumption[]
+}
+
+model Payment {
+  id             String    @id @default(cuid())
+  orderId        String
+  order          Order     @relation(fields: [orderId], references: [id])
+  date           DateTime
+  amount         Decimal   @db.Decimal(14, 2) // سالب = استرداد للعميل
+  method         String
+  accountId      String
+  note           String?
+  journalEntryId String?   @unique
+  createdAt      DateTime  @default(now())
+  deletedAt      DateTime?
+
+  @@index([orderId])
+}
+
+// ───────────────────────── الخطة والإغلاق الأسبوعي ─────────────────────────
+
+model WeeklyTarget {
+  week               Int      @id
+  days               String
+  weekStartDate      DateTime @db.Date
+  startCapitalTarget Decimal  @db.Decimal(14, 2)
+  endCapitalTarget   Decimal  @db.Decimal(14, 2)
+  requiredNetProfit  Decimal  @db.Decimal(14, 2)
+}
+
+model WeeklySnapshot {
+  id              String   @id @default(cuid())
+  week            Int      @unique
+  asOf            DateTime
+  capital         Decimal  @db.Decimal(14, 2)
+  target          Decimal  @db.Decimal(14, 2)
+  gap             Decimal  @db.Decimal(14, 2)
+  gapPct          Decimal  @db.Decimal(8, 4)
+  status          String // above | on | below | danger
+  breakdown       Json // مكونات رأس المال بالكامل
+  engines         Json // ربح وعائد كل محرك في الأسبوع
+  suggestedDecision String
+  actualDecision  String?
+  reconciliation  Json? // فروقات الحسابات والجرد
+  closedById      String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model ZakatAccrual {
+  id        String   @id @default(cuid())
+  month     String   @unique // YYYY-MM
+  base      Decimal  @db.Decimal(14, 2)
+  amount    Decimal  @db.Decimal(14, 2)
+  journalEntryId String? @unique
+  createdAt DateTime @default(now())
+}
