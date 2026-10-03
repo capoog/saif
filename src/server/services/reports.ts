@@ -1,5 +1,5 @@
 import { D, round2, sum, type Decimal } from "@/domain/money";
-import { PLAN_START_KEY, riyadhDateKey, riyadhEndOfDay, riyadhStartOfDay } from "@/domain/plan-calendar";
+import { getPlanStartKey, riyadhDateKey, riyadhEndOfDay, riyadhStartOfDay } from "@/domain/plan-calendar";
 import type { Db } from "../db";
 import { batchStats } from "./inventory";
 import { adsOverview } from "./ads";
@@ -24,7 +24,7 @@ export interface Period {
 export function periodOf(from?: string, to?: string, now = new Date()): Period {
   const ok = (k?: string) => (k && /^\d{4}-\d{2}-\d{2}$/.test(k) ? k : undefined);
   const toKey = ok(to) ?? riyadhDateKey(now);
-  let fromKey = ok(from) ?? PLAN_START_KEY;
+  let fromKey = ok(from) ?? getPlanStartKey();
   if (fromKey > toKey) fromKey = toKey;
   return { fromKey, toKey };
 }

@@ -9,10 +9,12 @@ import { STATUS_TONE } from "@/lib/labels";
 import { money, pct } from "@/lib/format";
 import { Badge, Card, CardTitle, PageHeader } from "@/components/ui";
 import { CloseWizard } from "./wizard";
+import { loadPlanStart } from "@/server/services/settings";
 
 export const dynamic = "force-dynamic";
 
 export default async function ClosePage() {
+  await loadPlanStart(prisma);
   const now = new Date();
   const week = planWeek(now);
   const [draft, balances, levels, existing, history] = await Promise.all([

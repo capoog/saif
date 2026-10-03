@@ -7,6 +7,8 @@ import { PasswordForm, SettingsForm, TwoFactor } from "./forms";
 import { UsersPanel } from "./users";
 import { accountBalances } from "@/server/services/balances";
 import { commissionBalances } from "@/server/services/users";
+import { getPlanStartKey, riyadhDateKey } from "@/domain/plan-calendar";
+import { ResetChallenge } from "./reset";
 
 export const dynamic = "force-dynamic";
 
@@ -55,6 +57,10 @@ export default async function SettingsPage() {
             </div>
           ))}
         </div>
+      </Card>
+      <Card className="border-danger/40">
+        <CardTitle>منطقة الخطر</CardTitle>
+        <ResetChallenge startKey={getPlanStartKey()} todayKey={riyadhDateKey(new Date())} />
       </Card>
     </div>
   );

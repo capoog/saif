@@ -9,7 +9,8 @@ import { acct, actor, at, db, product, resetDb, setSetting } from "../helpers";
 beforeEach(resetDb);
 
 // كل العمليات في الاختبارات بتواريخ أسبوع 1، فنحسب رأس المال كما في آخر الأسبوع
-const NOW = at("2026-10-02", 20);
+// بعد كل العمليات: الحذف يسجّل القيد العكسي بتاريخ اليوم الفعلي، فـ NOW لازم ما يكون قبل الساعة الحالية
+const NOW = new Date(Math.max(at("2026-10-02", 20).getTime(), Date.now() + 60000));
 
 async function money(code: string) {
   return (await accountBalances(db)).find((b) => b.code === code)!.balance.toFixed(2);

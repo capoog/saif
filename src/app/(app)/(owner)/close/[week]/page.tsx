@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/server/db";
 import { weekRange } from "@/domain/plan-calendar";
+import { loadPlanStart } from "@/server/services/settings";
 import { STATUS_LABELS, type CapitalStatus } from "@/domain/status";
 import { STATUS_TONE } from "@/lib/labels";
 import { date, dateTime, money, pct } from "@/lib/format";
@@ -13,6 +14,7 @@ type Breakdown = Record<string, string | null>;
 type EngineRow = { code: string; name: string; profit: string; capitalUsed: string; returnPct: string | null };
 
 export default async function SnapshotPage({ params }: { params: Promise<{ week: string }> }) {
+  await loadPlanStart(prisma);
   const week = Number((await params).week);
   const snap = Number.isInteger(week) ? await prisma.weeklySnapshot.findUnique({ where: { week } }) : null;
   if (!snap) notFound();

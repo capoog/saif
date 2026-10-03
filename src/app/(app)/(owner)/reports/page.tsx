@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Download } from "lucide-react";
 import { prisma } from "@/server/db";
+import { loadPlanStart } from "@/server/services/settings";
 import { REPORT_KEYS, REPORT_TITLES, buildReport, periodOf, type ColType, type ReportKey } from "@/server/services/reports";
 import { money, int } from "@/lib/format";
 import { Button, Card, Empty, Input, PageHeader, cn } from "@/components/ui";
@@ -19,6 +20,7 @@ function cell(v: string | number | null | undefined, t: ColType) {
 
 export default async function ReportsPage({ searchParams }: { searchParams: Promise<{ r?: string; from?: string; to?: string }> }) {
   const sp = await searchParams;
+  await loadPlanStart(prisma);
   const key: ReportKey = REPORT_KEYS.includes(sp.r as ReportKey) ? (sp.r as ReportKey) : "income";
   const period = periodOf(sp.from, sp.to);
   const t = await buildReport(prisma, key, period);

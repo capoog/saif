@@ -1,5 +1,6 @@
 import { prisma } from "@/server/db";
 import { getCurrentUser } from "@/server/auth/session";
+import { loadPlanStart } from "@/server/services/settings";
 import { REPORT_KEYS, buildReport, periodOf, toCsv, toXlsx, type ReportKey } from "@/server/services/reports";
 
 export const runtime = "nodejs";
@@ -8,6 +9,7 @@ export const runtime = "nodejs";
 export async function GET(req: Request) {
   const user = await getCurrentUser();
   if (!user || user.role !== "owner") return new Response("غير مسموح", { status: 401 });
+  await loadPlanStart(prisma);
   const q = new URL(req.url).searchParams;
   const period = periodOf(q.get("from") ?? undefined, q.get("to") ?? undefined);
   const key = q.get("key") ?? "all";

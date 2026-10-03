@@ -9,7 +9,7 @@ import { audit, toJson, type Actor } from "../audit";
 import { UserError } from "../errors";
 import { postEntry } from "../ledger";
 import { accountBalance, customerBalances, getCapital, projectBalances } from "./balances";
-import { getSettings } from "./settings";
+import { getSettings, loadPlanStart } from "./settings";
 
 /** ربح كل محرك في فترة = إيراداته − (تكلفة بضاعة + مصروفات) المنسوبة له */
 export async function engineProfits(db: Db | Tx, from: Date, to: Date): Promise<Map<string, Decimal>> {
@@ -137,6 +137,7 @@ export interface CloseDraft {
 }
 
 export async function closeDraft(db: Db | Tx, asOf: Date = new Date(), week?: number): Promise<CloseDraft> {
+  await loadPlanStart(db);
   const w = week ?? planWeek(asOf);
   const [settings, target, breakdown, engines] = await Promise.all([
     getSettings(db),
@@ -164,6 +165,7 @@ export async function closeWeek(
   opts: { asOf?: Date; week?: number; actualDecision?: string; reconciliation?: unknown; overwrite?: boolean; reason?: string },
 ) {
   const asOf = opts.asOf ?? new Date();
+  await loadPlanStart(db);
   const week = opts.week ?? planWeek(asOf);
   const existing = await db.weeklySnapshot.findUnique({ where: { week } });
   if (existing && !opts.overwrite) throw new UserError(`أسبوع ${week} مقفل بالفعل`);

@@ -2,7 +2,8 @@ import bcrypt from "bcryptjs";
 import type { ProductStatus } from "@prisma/client";
 import productsJson from "../../seed/products.json";
 import targetsJson from "../../seed/weekly_targets.json";
-import { riyadhStartOfDay, PLAN_START_KEY } from "@/domain/plan-calendar";
+import { addDaysKey, getPlanStartKey, riyadhStartOfDay } from "@/domain/plan-calendar";
+import { loadPlanStart } from "./services/settings";
 import { AGENCY_SERVICE_NAME, CHART, ENGINES } from "./chart";
 import type { Db } from "./db";
 import { postEntry } from "./ledger";
@@ -32,6 +33,8 @@ export interface SeedOptions {
 
 /** بيانات أولية — آمنة للتشغيل أكثر من مرة */
 export async function seedBase(db: Db, opts: SeedOptions = {}) {
+  await loadPlanStart(db);
+  const start = getPlanStartKey();
   for (const [i, e] of ENGINES.entries()) {
     await db.engine.upsert({ where: { code: e.code }, create: { code: e.code, name: e.name, sortOrder: i }, update: { name: e.name, sortOrder: i } });
   }
@@ -64,7 +67,8 @@ export async function seedBase(db: Db, opts: SeedOptions = {}) {
   for (const t of targetsJson) {
     const data = {
       days: t.days,
-      weekStartDate: new Date(`${t.week_start_date}T00:00:00Z`),
+      // تواريخ الأسابيع تمشي من بداية التحدي (تتغير مع التصفير)
+      weekStartDate: new Date(`${addDaysKey(start, (t.week - 1) * 7)}T00:00:00Z`),
       startCapitalTarget: String(t.start_capital_target),
       endCapitalTarget: String(t.end_capital_target),
       requiredNetProfit: String(t.required_net_profit),
@@ -96,7 +100,7 @@ export async function seedBase(db: Db, opts: SeedOptions = {}) {
   if (!hasOpening && Number(opening) > 0) {
     await db.$transaction((tx) =>
       postEntry(tx, {
-        date: riyadhStartOfDay(PLAN_START_KEY),
+        date: riyadhStartOfDay(start),
         description: "رصيد افتتاحي — رأس مال المالك",
         sourceType: "OPENING",
         lines: [

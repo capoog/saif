@@ -5,9 +5,12 @@ import { homeFor, requireUser } from "@/server/auth/session";
 import { logoutAction } from "@/server/actions/auth";
 import { BottomNav, QuickAdd, SideNav } from "@/components/nav";
 import { ThemeToggle } from "@/components/theme";
+import { prisma } from "@/server/db";
+import { loadPlanStart } from "@/server/services/settings";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser(["owner", "sales", "freelancer"]);
+  await loadPlanStart(prisma);
   const now = new Date();
   const day = planDay(now);
   return (

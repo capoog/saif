@@ -9,7 +9,7 @@ import type { Db } from "../db";
 import { getCapital } from "./balances";
 import { engineWeekResults } from "./close";
 import { batchStats } from "./inventory";
-import { getSettings } from "./settings";
+import { getSettings, loadPlanStart } from "./settings";
 import { adsOverview } from "./ads";
 import { ramadanCounter } from "./b2b";
 import { crmToday, overdueFollowUpsCount } from "./crm";
@@ -152,6 +152,7 @@ export async function alerts(db: Db, now: Date, settings: Settings, cap: Capital
 }
 
 export async function dashboardData(db: Db, now = new Date()) {
+  await loadPlanStart(db);
   const [settings, cap, targets, snapshots] = await Promise.all([
     getSettings(db),
     getCapital(db, now),
