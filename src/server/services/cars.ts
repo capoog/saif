@@ -164,6 +164,7 @@ export async function addCarCost(db: Db, actor: Actor, id: string, input: { desc
       ],
     });
     await tx.carDealCost.update({ where: { id: cost.id }, data: { journalEntryId: entry.id } });
+    await audit(tx, actor, "cost", "CarDeal", id, { after: { description: cost.description, amount } });
     return cost;
   });
 }

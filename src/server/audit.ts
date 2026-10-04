@@ -1,5 +1,6 @@
 import type { Prisma } from "@prisma/client";
 import type { Tx } from "./db";
+import { queueActionAlert } from "./action-alerts";
 
 export interface Actor {
   userId: string | null;
@@ -22,15 +23,12 @@ export async function audit(
   entityId: string | null,
   data: { before?: unknown; after?: unknown; reason?: string } = {},
 ) {
-  await tx.auditLog.create({
-    data: {
-      userId: actor.userId,
-      action,
-      entity,
-      entityId,
-      before: data.before === undefined ? undefined : toJson(data.before),
-      after: data.after === undefined ? undefined : toJson(data.after),
-      reason: data.reason,
-    },
+  const before = data.before === undefined ? undefined : toJson(data.before);
+  const after = data.after === undefined ? undefined : toJson(data.after);
+  const row = await tx.auditLog.create({
+    data: { userId: actor.userId, action, entity, entityId, before, after, reason: data.reason },
+    select: { id: true, createdAt: true },
   });
+  // تنبيه تيليجرام بعد الرد (ولو المعاملة انحفظت فعلًا)
+  queueActionAlert({ auditId: row.id, userId: actor.userId, action, entity, entityId, before, after, reason: data.reason, at: row.createdAt });
 }

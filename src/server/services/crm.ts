@@ -192,6 +192,7 @@ export async function logActivity(
     await tx.activity.createMany({
       data: Array.from({ length: count }, () => ({ date, type: input.type, customerId, dealId: input.dealId ?? null, note: input.note ?? null, userId: actor.userId })),
     });
+    await audit(tx, actor, "activity", "Customer", customerId, { after: { type: input.type, count } });
     return { count };
   });
 }
