@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { FileDown, Printer, Share2 } from "lucide-react";
+import { FileDown, Printer, Share2, MessageCircle } from "lucide-react";
 import { createContractAction, setQuoteStatusAction } from "@/server/actions/quotes";
 import type { ActionState } from "@/server/actions/run";
 import { Button, Field, Input } from "@/components/ui";
@@ -10,7 +10,7 @@ import { OverrideField } from "@/components/override";
 
 const today = (plus = 0) => new Date(Date.now() + 3 * 3600000 + plus * 86400000).toISOString().slice(0, 10);
 
-export function QuoteActions({ id, label, status, phone, total }: { id: string; label: string; status: string; phone: string | null; total: string }) {
+export function QuoteActions({ id, label, status, waHref }: { id: string; label: string; status: string; waHref: string }) {
   const [state, action] = useActionState<ActionState, FormData>(setQuoteStatusAction, {});
   const [busy, setBusy] = useState(false);
   const share = async () => {
@@ -37,8 +37,11 @@ export function QuoteActions({ id, label, status, phone, total }: { id: string; 
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap gap-2">
-        <Button type="button" size="sm" onClick={share} disabled={busy}>
-          <Share2 className="size-4" /> {busy ? "جاري التجهيز…" : "مشاركة PDF (واتساب)"}
+        <a href={waHref} target="_blank" rel="noopener noreferrer" className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-[#1fa855] px-3 text-sm font-semibold text-white hover:opacity-90">
+          <MessageCircle className="size-4" /> أرسل واتساب (رابط)
+        </a>
+        <Button type="button" size="sm" variant="secondary" onClick={share} disabled={busy}>
+          <Share2 className="size-4" /> {busy ? "جاري التجهيز…" : "مشاركة الملف"}
         </Button>
         <a href={`/quotes/${id}/pdf`} target="_blank" className="inline-flex h-9 items-center gap-1 rounded-xl border border-border bg-subtle px-3 text-sm font-semibold">
           <FileDown className="size-4" /> PDF
@@ -46,16 +49,6 @@ export function QuoteActions({ id, label, status, phone, total }: { id: string; 
         <a href={`/quotes/${id}/print`} target="_blank" className="inline-flex h-9 items-center gap-1 rounded-xl px-3 text-sm text-muted">
           <Printer className="size-4" /> طباعة
         </a>
-        {phone && (
-          <a
-            href={`https://wa.me/966${phone.replace(/^0/, "")}?text=${encodeURIComponent(`السلام عليكم، مرفق عرض السعر ${label} بإجمالي ${Number(total).toLocaleString("en-US")} ريال.`)}`}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex h-9 items-center rounded-xl px-3 text-sm text-muted"
-          >
-            رسالة واتساب
-          </a>
-        )}
       </div>
       {status !== "ACCEPTED" && (
         <div className="flex flex-wrap gap-2">

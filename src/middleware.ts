@@ -12,5 +12,5 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!login|api/webhooks|_next/static|_next/image|favicon.ico|icon|robots.txt).*)"],
+  matcher: ["/((?!login|share/|api/webhooks|api/cron|manifest.webmanifest|sw.js|apple-icon|_next/static|_next/image|favicon.ico|icon|robots.txt).*)"],
 };

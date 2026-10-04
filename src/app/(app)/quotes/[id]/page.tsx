@@ -7,6 +7,9 @@ import { effectiveQuoteStatus, QUOTE_STATUS_LABEL, quoteNumberLabel } from "@/se
 import { date } from "@/lib/format";
 import { Alert, Badge, Card, CardTitle, Money, PageHeader } from "@/components/ui";
 import { ContractForm, QuoteActions } from "./client";
+import { baseUrl } from "@/server/base-url";
+import { shareToken, waLink } from "@/server/share";
+import { getSettings } from "@/server/services/settings";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +20,9 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
   const q = await prisma.quote.findFirst({ where: { id, ...quoteScope(user) }, include: { customer: true, items: { orderBy: { sortOrder: "asc" } }, contract: true, deal: true } });
   if (!q) notFound();
   const st = effectiveQuoteStatus(q);
+  const settings = await getSettings(prisma);
+  const shareUrl = `${await baseUrl()}/share/q/${q.id}/${shareToken("quote", q.id)}`;
+  const waText = `السلام عليكم ${q.customer.name}،\nمرفق عرض السعر رقم ${quoteNumberLabel(q)} من ${settings.businessName} بإجمالي ${Number(q.total).toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال، صالح حتى ${date(q.validUntil)}:\n${shareUrl}`;
   const label = quoteNumberLabel(q);
   const deposit = (Number(q.total) * Number(q.depositPct)) / 100;
   const canConvert = owner && !q.carDealId && !q.contract && st !== "REJECTED" && q.items.every((i) => i.productId);
@@ -33,7 +39,7 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
         }
         action={<Badge tone={st === "ACCEPTED" ? "ok" : st === "REJECTED" ? "danger" : st === "EXPIRED" ? "warn" : "info"}>{QUOTE_STATUS_LABEL[st]}</Badge>}
       />
-      <QuoteActions id={q.id} label={label} status={q.status} phone={q.customer.phone} total={q.total.toString()} />
+      <QuoteActions id={q.id} label={label} status={q.status} waHref={waLink(q.customer.phone, waText)} />
 
       <Card>
         <div className="divide-y divide-border text-sm">
