@@ -23,7 +23,7 @@ export function hashToken(token: string): string {
 
 export type LoginResult =
   | { ok: true; token: string; user: User; expiresAt: Date }
-  | { ok: false; needCode?: boolean; error: string };
+  | { ok: false; needCode?: boolean; error: string; lockedUser?: Pick<User, "name" | "email"> };
 
 /** التحقق من بيانات الدخول (+ كود 2FA لو مفعّل)، مع قفل الحساب بعد محاولات فاشلة. */
 export async function login(db: Db, email: string, password: string, code: string | undefined, userAgent?: string): Promise<LoginResult> {
@@ -49,7 +49,9 @@ export async function login(db: Db, email: string, password: string, code: strin
       },
     });
     await db.$transaction((tx) => audit(tx, { userId: user.id }, "login_failed", "User", user.id));
-    return valid ? { ok: false, needCode: true, error: "كود التحقق غير صحيح" } : generic;
+    // لو هذي المحاولة اللي قفلت الحساب، نرجّع المستخدم عشان يتنبّه المالك
+    const lockedUser = failed >= MAX_FAILED ? { name: user.name, email: user.email } : undefined;
+    return valid ? { ok: false, needCode: true, error: "كود التحقق غير صحيح", lockedUser } : { ...generic, lockedUser };
   }
 
   const token = crypto.randomBytes(32).toString("base64url");
